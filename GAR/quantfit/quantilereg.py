@@ -15,8 +15,6 @@ import statsmodels as sm                                ## Statistical models
 import statsmodels.formula.api as smf                   ## Formulas
 import time
 
-from sklearn.preprocessing import scale 
-
 ###############################################################################
 #%% Run the quantiles regressions
 ###############################################################################
@@ -72,6 +70,8 @@ class QuantileReg(object):
         ## Depending on user input, scale the variables
         vars_reg = [self.depvar] + self.regressors
         if self.scaling == True:
+            from sklearn.preprocessing import scale
+
             self.data.loc[:, vars_reg] = scale(self.data.loc[:, vars_reg])
         else:
             pass
@@ -124,7 +124,7 @@ class QuantileReg(object):
             #dp = dp.loc[dp.index != 'Intercept',:].copy()
             ## Add the scaling information
             dp.loc[:,'normalized'] = self.scaling
-            params = params._append(dp)
+            params = pd.concat([params, dp])
         
         ## For information,  coeffs from an OLS regression (conditional mean)
         mfit = self.mfit
@@ -157,7 +157,7 @@ class QuantileReg(object):
             dc.insert(0, 'tau', tau)
             dc = dc.set_index(predictors.index)
             dc.insert(1, 'realized_value', predictors.loc[:, self.depvar])    
-            cond_quantiles = cond_quantiles._append(dc)
+            cond_quantiles = pd.concat([cond_quantiles, dc])
                         
         ## Add the conditional mean
         dm = self.mfit.get_prediction(exog=predictors).summary_frame()
@@ -175,8 +175,6 @@ class QuantileReg(object):
 
 
     
-
-
 
 
 

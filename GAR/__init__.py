@@ -15,37 +15,63 @@ __version__ = "0.1.1"
 
 import os
 import sys
-import imp
+import importlib
+import importlib.util
 
-import xlwings as xw
+try:
+    import xlwings as xw
+except ModuleNotFoundError as error:
+    if error.name != 'xlwings':
+        raise
+    xw = None
 
 # Initialize the wb to None
 wb = None
 
-# Set the wb from the caller if this library has been imported through Excel.
-try:
-    # If the GAR library is being imported by an Excel file through
-    # xlwings, this will work and we can set up the wb
-    wb = xw.Book.caller()
-except:
-    # If being imported from a regular Python run environment
-    # this will be raised
-    print('-' * 50)
-    print('GAR WARNING:')
-    print('    When importing the GAR library from a non-Excel')
-    print('    environmentit is necessary to call')
-    print("    GAR.set_mock_caller_file(xlfilename)")
-    print('-' * 50)
+_excel_automation_available = (
+    xw is not None
+    and importlib.util.find_spec('win32api') is not None
+    and importlib.util.find_spec('win32con') is not None
+)
 
-from GAR.partition.partition_main import do_partition
-from GAR.quantfit.quantfit_main import do_quantfit
-from GAR.tsfit.tsfit_main import do_tsfit
-from GAR.scenario.scenariomain import do_scenario
-from GAR.historical.historicalmain import do_historical
-from GAR.segment.segmentmain import do_segment
-from GAR import historical
-from GAR import scenario
-from GAR import segment
+if xw is not None:
+    # Set the wb from the caller if this library has been imported through Excel.
+    try:
+        wb = xw.Book.caller()
+    except Exception:
+        # Importing from a regular Python environment has no caller workbook.
+        print('-' * 50)
+        print('GAR WARNING:')
+        print('    When importing the GAR library from a non-Excel')
+        print('    environment it is necessary to call')
+        print("    GAR.set_mock_caller_file(xlfilename)")
+        print('-' * 50)
+
+if _excel_automation_available:
+    from GAR.partition.partition_main import do_partition
+    from GAR.quantfit.quantfit_main import do_quantfit
+    from GAR.tsfit.tsfit_main import do_tsfit
+    from GAR.scenario.scenariomain import do_scenario
+    from GAR.historical.historicalmain import do_historical
+    from GAR.segment.segmentmain import do_segment
+    from GAR import historical
+    from GAR import scenario
+    from GAR import segment
+else:
+    def _require_excel_automation(*args, **kwargs):
+        raise ImportError(
+            'The original IMF Excel workflow requires xlwings and Windows '
+            'pywin32. Use run_dnb_gar.py for the standalone DNB model.'
+        )
+
+    do_partition = _require_excel_automation
+    do_quantfit = _require_excel_automation
+    do_tsfit = _require_excel_automation
+    do_scenario = _require_excel_automation
+    do_historical = _require_excel_automation
+    do_segment = _require_excel_automation
+
+
 def set_mock_caller_file(xlfilename='GaR.xlsm'):
     '''
     Function to set up mock caller for xlwings.
@@ -54,6 +80,12 @@ def set_mock_caller_file(xlfilename='GaR.xlsm'):
 
     **When running from the input Excel this should not be called.**
     '''
+
+    if not _excel_automation_available:
+        raise ImportError(
+            'The original IMF Excel workflow requires xlwings and Windows '
+            'pywin32.'
+        )
 
     # Set the wb set in this function to be global
     # so it overwrites the wb throughout this file.
@@ -71,22 +103,22 @@ def set_mock_caller_file(xlfilename='GaR.xlsm'):
 
     # Once this is called we need to re-import the functions,
     # otherwise the variable wb imported is still the previous value
-    imp.reload(globals)
+    importlib.reload(globals)
     
-    imp.reload(partition.partition_main)
+    importlib.reload(partition.partition_main)
     from GAR.partition.partition_main import do_partition
     
-    imp.reload(quantfit.quantfit_main)
+    importlib.reload(quantfit.quantfit_main)
     from GAR.quantfit.quantfit_main import do_quantfit
 
-    imp.reload(tsfit.tsfit_main)
+    importlib.reload(tsfit.tsfit_main)
     from GAR.tsfit.tsfit_main import do_tsfit  
         
-    imp.reload(scenario.scenariomain)
+    importlib.reload(scenario.scenariomain)
     from GAR.scenario.scenariomain import do_scenario
 
-    imp.reload(historical.historicalmain)
+    importlib.reload(historical.historicalmain)
     from GAR.historical.historicalmain import do_historical
     
-    imp.reload(segment.segmentmain)
+    importlib.reload(segment.segmentmain)
     from GAR.segment.segmentmain import do_segment

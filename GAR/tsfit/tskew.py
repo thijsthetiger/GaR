@@ -122,28 +122,3 @@ def tskew_mean(df, loc, scale, skew):
     cons1=skew-1/skew
     Mr=math.gamma((df+1)/2)/(math.sqrt(df*math.pi)*math.gamma(df/2))*2*df*scale
     return cons1*Mr+loc
-
-#%%
-#
-## Test
-#
-#df0= 1
-#loc0= 4
-#scale0= 2
-#skew0= 5
-#
-#
-#print(tskew_ppf(0.2,df0,loc0,scale0,skew0))
-#print(tskew_cdf(tskew_ppf(0.2,df0,loc0,scale0,skew0),df0,loc0,scale0,skew0))
-
-
-
-df0= 2
-loc0= 1.8
-scale0= 3
-skew0=0.8
-print(tskew_mean(df0, loc0, scale0, skew0),loc0,scale0, skew0)
-#
-#plt.plot([tskew_pdf(x, df0, loc0, scale0, skew0) for x in np.linspace(-10,10, 200)])
-#plt.show()
-
