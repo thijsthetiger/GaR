@@ -8,10 +8,11 @@ starting point for an MSc Engineering & Policy Analysis thesis at TU Delft.
 
 The research asks whether Exploratory Modeling and Analysis (EMA) can improve
 the robustness and policy relevance of insights from Macro-at-Risk (MaR)
-models. The current repository provides an initial DNB GaR baseline; it does
-**not** implement EMA, scenario discovery, PRIM, or a robustness evaluation.
-The existing model and its calculations are intentionally kept separate from
-those future research activities.
+models. The current repository provides an initial DNB GaR baseline and a separate
+EMA Workbench sampling proof of concept. It does **not**
+implement PRIM, scenario discovery, or a broader robustness evaluation. The
+existing baseline model and its calculations remain separate from the
+sampling adapter.
 
 ## Repository structure
 
@@ -306,18 +307,22 @@ diagnostics. The conditional coefficients should not be interpreted
 causally. The IMF T-skew fit checks described in the methodology do not
 substitute for an optimizer convergence-status diagnostic.
 
-## Future development (not implemented)
+## EMA proof of concept and future development
 
-An eventual EMA extension could expose the current predictor values as
-uncertainties or policy levers, define plausible ranges or scenarios, and call
-the adapter's separated prediction interface to evaluate conditional tail
-outputs. Before doing so, the BQR transformations and units must be resolved
-so scenario values are comparable to the model inputs. Scenario analysis,
-PRIM (Patient Rule Induction Method), and robustness evaluation could then
-identify input combinations associated with adverse outcomes and assess how
-conclusions vary across assumptions. None of these extensions is present in
-the current code; no EMA or PRIM functionality is implied by the IMF
-`scenario` package.
+`analysis/run_ema_sampling.py` connects EMA Workbench to the already-fitted
+DNB adapter and runs a reproducible 100-case Latin Hypercube sample over
+independently sampled 5th–95th empirical percentile bounds. It fits the GaR
+model once, then evaluates each sampled input vector using the same fitted
+regression coefficients. This is a proof of concept, not a calibrated
+predictive distribution or a validation of the provisional ranges. See
+`results/ema_sampling/run_metadata.json` and the EMA result files for settings
+and outputs.
+
+Future work could refine uncertainty ranges, preserve economic dependencies,
+and develop a documented sensitivity and robustness evaluation. PRIM (Patient
+Rule Induction Method) and broader scenario discovery are not implemented.
+The IMF `GAR/scenario/` package is a separate original IMF feature and is not
+the EMA Workbench integration.
 
 ## Attribution and references
 

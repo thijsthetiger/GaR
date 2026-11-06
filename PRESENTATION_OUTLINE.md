@@ -1,233 +1,218 @@
 # Presentation outline: Exploring Input Uncertainty in Macro-at-Risk Models
 
-**Audience:** MSc Engineering & Policy Analysis thesis supervisors, TU Delft / DNB  
-**Length:** Approximately 8 slides  
-**Evidence boundary:** Model specification, coefficients, forecasts, and figures below are read from the current repository and existing output files. EMA, PRIM, and sampled scenario results are proposed future work; none is implemented or reported as an empirical finding here.
+**Audience:** MSc Engineering & Policy Analysis thesis supervisors, TU Delft / DNB
+**Structure:** Eight slides, following one baseline GaR model from specification through scenario-group comparisons.
+**Research reference:** Ossandon Busch et al. (2022), “Growth at risk: Methodology and applications in an open-source platform,” *Latin American Journal of Central Banking*. [https://doi.org/10.1016/j.latcb.2022.100068](https://doi.org/10.1016/j.latcb.2022.100068)
+
+> **Method distinction:** The paper is a conceptual and methodological reference. Its implementation uses non-parametric distribution fitting; this repository uses the IMF implementation's parametric T-skew fit. Figures in this outline are generated from the DNB model and its saved results, not copied from the paper.
 
 ## Slide 1 — Exploring Input Uncertainty in Macro-at-Risk Models
 
-**Key message:** The thesis will investigate whether EMA can show how uncertainty in macroeconomic inputs changes MaR/GaR tail-risk insights.
+**Main takeaway:** EMA can help explore how uncertain macro-financial inputs change the downside-risk assessment from a Macro-at-Risk model.
 
 **Slide content**
 
-- **Research objective:** Investigate whether Exploratory Modeling and Analysis (EMA) can improve the robustness and policy relevance of insights from Macro-at-Risk (MaR) models.
-- MaR focuses on the conditional distribution and adverse tail of macroeconomic outcomes, not only on an average forecast.
-- GaR is a GDP-focused example: it summarizes downside risks to future growth conditional on current macro-financial conditions.
-- Inputs are uncertain, measured imperfectly, and may vary across plausible futures. A forecast conditional on one input vector does not show how tail risk changes across those alternatives.
-- **Current status:** An IMF-based DNB GDP Growth-at-Risk implementation is the initial model for investigating the EMA connection. EMA itself is not implemented.
+- **MaR/GaR:** Estimate the conditional distribution of a future macroeconomic outcome given current conditions; Growth-at-Risk (GaR) emphasizes a lower-tail GDP growth measure.
+- A conditional distribution communicates both a central outcome and downside risk, unlike a point forecast alone.
+- The result depends on the input vector. Exploring alternative inputs helps show how robust a tail-risk assessment is to input uncertainty.
+- **Research objective:** Investigate how Exploratory Modeling and Analysis (EMA) can explore input uncertainty in MaR models, using the existing IMF-based Dutch GDP GaR model as the initial example.
+- **Story:** `Understand one GaR model → change its inputs → compare conditional risk outcomes → investigate input uncertainty using EMA`
 
-**Figure / visual**
+**Visual**
 
-- Simple research flow: `DNB macroeconomic inputs → conditional GDP-growth distribution → downside tail measure`.
-- Label the current GaR implementation “baseline model”; label EMA “proposed extension.”
+Use a simple flow:
 
-**Speaker explanation**
+```text
+Current macro-financial inputs → Conditional future GDP-growth distribution
+                                      → Downside tail-risk measure
+                         EMA explores alternative input combinations
+```
 
-The main thesis question is not simply whether one model produces the most accurate point forecast. It is whether plausible variation in the model inputs can materially alter conclusions about downside macroeconomic risk, and whether an EMA approach can make those vulnerabilities more transparent and policy-relevant. The current model supplies a concrete conditional distribution model to build on.
+**Speaker notes**
 
-**Sources**
+The objective is not to maximize forecast accuracy. It is to understand how the model translates conditions into a conditional growth distribution, and then to explore whether different plausible inputs materially change the implied tail risk. The next slides first explain the one existing model and its baseline forecast; EMA is introduced only after that forecast is clear.
 
-- `README.md` — research context and current/future functionality boundary.
-- `METHODOLOGY.md` — current GaR purpose and scope.
+**Sources and references**
+
+- Research framing: `README.md`, `METHODOLOGY.md`.
+- Ossandon Busch et al. (2022), DOI above; conceptual motivation for conditional distributions and GaR.
 
 ## Slide 2 — Baseline Growth-at-Risk Model
 
-**Key message:** The current model estimates four-quarter-ahead Dutch GDP growth conditional on four contemporaneous BQR series.
+**Main takeaway:** One quantile-regression specification forecasts `NF_YER` four quarters ahead from four current BQR inputs.
 
 **Slide content**
 
-| Model element | Current specification |
+| Element | Existing specification |
 |---|---|
-| Data input | `BQR data yoy.xlsx`, worksheet `data_yoy` |
-| Sample in the current fitted results | 217 origin–target pairs |
-| Forecast origins in estimation | 1971Q1–2025Q1 |
-| Target dates in estimation | 1972Q1–2026Q1 |
-| Forecast target | `NF_YER` four quarters after the predictor date |
-| Forecast horizon | Four quarters |
-| Conditional quantiles | 5%, 10%, 25%, 50%, 75%, 90%, 95% |
+| Data | `BQR data yoy.xlsx`, worksheet `data_yoy` |
+| Target | `NF_YER` at \(t+4\) |
+| Predictors at \(t\) | `NF_YER`, `NF_URX`, `DF_LTN_NFCN`, `DR_PYR` |
+| Horizon | Four quarters |
+| Estimation sample | 217 origin–target observations |
+| Estimation method | IMF-based quantile regressions, estimated separately at seven quantiles |
 
-| Predictor | Economic interpretation | Data caveat |
-|---|---|---|
-| `NF_YER` | Current GDP growth; also the series being forecast | Existing documentation treats it as year-on-year real GDP growth |
-| `NF_URX` | Unemployment rate | BQR values are used as supplied |
-| `DF_LTN_NFCN` | BQR series associated with the long-term lending rate for NFCs | Exact BQR transformation/units are not fully documented |
-| `DR_PYR` | BQR series associated with real gross personal disposable income (`PYR` in the BMPE variable list); used as disposable-income growth in this specification | Exact BQR transformation/units are not fully documented |
+Let \(Y_{t+4}=\texttt{NF\_YER}_{t+4}\). For each quantile level \(\tau\), the actual model specification is:
 
-The current model replaced `DF_IHX` with `DR_PYR` to extend historical coverage. All four selected series have 221 non-missing values in the input sheet; the four-quarter target alignment leaves 217 estimation pairs. The substitution is a coverage choice, not proof that `DR_PYR` is a theoretically superior predictor.
-
-**Figure / visual**
-
-- Draw a timeline: predictors dated at \(t\), `NF_YER` target dated at \(t+4\).
-- Put the 217-observation count and sample dates beside the timeline.
-
-**Speaker explanation**
-
-Be explicit that `NF_YER` appears in two roles: its value at the forecast origin is one of the predictors, while its value four quarters later is the outcome. The code shifts the series by four quarterly rows. The model uses the data already prepared in the BQR workbook; it does not read or transform data from the BMPE workbook. The BMPE variable list is context for definitions, not a model input.
-
-**Sources**
-
-- `GAR/dnb_gar.py` — `PREDICTORS`, `DEPENDENT_VARIABLE`, `DEFAULT_HORIZON`, `DATA_SHEET`, `load_dnb_data`, `prepare_horizon_data`.
-- `run_dnb_gar.py` — default BQR path, estimation, and information cutoff.
-- `BQR data yoy.xlsx` — `data_yoy` sheet and sample coverage.
-- `BMPE_vintages_QLY (1).xlsx` — `List_variables` sheet, including the `PYR` definition.
-- `results/quantile_regression_diagnostics.csv` — seven fitted quantile regressions, each with 217 observations.
-- `results/in_sample_conditional_quantiles.csv` — origin and target date range.
-
-## Slide 3 — Mathematical Formulation of the GaR Model
-
-**Key message:** The model first estimates conditional quantiles with separate linear regressions, then fits an IMF T-skew distribution to those quantile estimates.
-
-**Slide content**
-
-Let \(Y_{t+4}=\texttt{NF\_YER}_{t+4}\) be the target and let
 \[
-X_t =
-\left(
-\texttt{NF\_YER}_t,\,
-\texttt{NF\_URX}_t,\,
-\texttt{DF\_LTN\_NFCN}_t,\,
-\texttt{DR\_PYR}_t
-\right).
-\]
-For each fitted quantile \(\tau\in\{0.05,0.10,0.25,0.50,0.75,0.90,0.95\}\), the quantile regression is
-\[
+\begin{aligned}
 Q_{\tau}(Y_{t+4}\mid X_t)
-=\beta_{0,\tau}
-+\beta_{1,\tau}\texttt{NF\_YER}_t
-+\beta_{2,\tau}\texttt{NF\_URX}_t
-+\beta_{3,\tau}\texttt{DF\_LTN\_NFCN}_t
-+\beta_{4,\tau}\texttt{DR\_PYR}_t.
+={}&\beta_{0,\tau}
++\beta_{1,\tau}\texttt{NF\_YER}_{t}
++\beta_{2,\tau}\texttt{NF\_URX}_{t}\\
+&+\beta_{3,\tau}\texttt{DF\_LTN\_NFCN}_{t}
++\beta_{4,\tau}\texttt{DR\_PYR}_{t}.
+\end{aligned}
 \]
 
-For \(\tau=0.05\), the current fitted coefficients are:
+The fitted direct fifth-percentile equation is:
 
-| Term | Coefficient |
-|---|---:|
-| Intercept | −5.855645 |
-| `NF_YER` at \(t\) | 0.295874 |
-| `NF_URX` at \(t\) | 0.458065 |
-| `DF_LTN_NFCN` at \(t\) | −0.787512 |
-| `DR_PYR` at \(t\) | 0.371629 |
-
-Therefore, the actual fitted direct 5th-percentile regression is
 \[
 \begin{aligned}
 Q_{0.05}(Y_{t+4}\mid X_t)
 ={}&-5.855645
-+0.295874\,\texttt{NF\_YER}_t
-+0.458065\,\texttt{NF\_URX}_t\\
-&-0.787512\,\texttt{DF\_LTN\_NFCN}_t
-+0.371629\,\texttt{DR\_PYR}_t.
++0.295874\,\texttt{NF\_YER}_{t}
++0.458065\,\texttt{NF\_URX}_{t}\\
+&-0.787512\,\texttt{DF\_LTN\_NFCN}_{t}
++0.371629\,\texttt{DR\_PYR}_{t}.
 \end{aligned}
 \]
 
-- \(\tau\) is the conditional quantile level; \(\tau=0.05\) denotes the 5th percentile.
-- Each \(\beta_{j,\tau}\) is estimated separately for each quantile, so relationships can differ across the conditional distribution. These are conditional associations, not causal effects.
-- At a given \(\tau\), each slope describes the fitted conditional quantile's change with that predictor, holding the other included predictors fixed.
-- Inputs are passed with `scaling=False`. Coefficients are in the units of the provided BQR columns; the exact transformations/units of some columns are not established in the workbook documentation.
-- The seven predicted quantiles are then supplied to the IMF T-skew fitting function. Write the fitted distribution quantile as
-  \[
-  Q_{\tau}^{T}(X_t)=F^{-1}_{T}\!\left(\tau;\widehat{loc}(X_t),\widehat{scale}(X_t),\widehat{skew}(X_t),\widehat{df}(X_t)\right).
-  \]
-  The reported distribution-based GaR is \(Q_{0.05}^{T}(X_t)\). The direct QR 5th percentile and fitted T-skew 5th percentile are separate outputs and need not be equal.
-- The probability of negative growth is
-  \[
-  \Pr(Y_{t+4}<0\mid X_t)=F_T(0\mid X_t).
-  \]
+- `NF_YER` has two roles: current GDP growth is a predictor at \(t\), and future GDP growth is the dependent variable at \(t+4\).
+- The seven fitted \(\tau\) values are 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, and 0.95.
+- Coefficients depend on \(\tau\); the displayed fifth-percentile regression is not by itself the complete conditional distribution.
+- Forecast-origin sample: 1971Q1–2025Q1; corresponding target dates: 1972Q1–2026Q1.
 
-**Figure / visual**
+**Visual**
 
-- Use the coefficient table above, emphasizing the fifth-percentile equation.
-- Optionally add a two-box schematic: “Seven QR estimates” → “IMF T-skew fit” → “T-skew 5th percentile / probability below zero.”
+Show a four-quarter timeline with all predictors at \(t\) and `NF_YER` as the target at \(t+4\). Place the numerical \(\tau=0.05\) equation alongside it.
 
-**Speaker explanation**
+**Speaker notes**
 
-The displayed numerical equation is the direct \(\tau=0.05\) regression from the saved coefficient output; it is not the final T-skew distribution equation. For each input vector, the model evaluates all seven fitted quantile regressions. The T-skew fitting step approximates those quantiles with a single parametric conditional distribution. This distinction explains why the direct QR lower-tail estimate and the distribution-based GaR can differ.
+Explain the time indexing carefully: the model uses current GDP growth as one predictor, but predicts GDP growth observed four quarters later. It is a single linear quantile-regression specification fitted separately for each \(\tau\), producing different intercepts and slopes across the conditional distribution. The coefficients are conditional associations, not causal effects.
 
-**Sources**
+**Sources and references**
 
-- `GAR/dnb_gar.py` — `QUANTILES`, `DNBGrowthAtRisk.fit`, `DNBGrowthAtRisk.predict`.
-- `GAR/quantfit/quantilereg.py` — IMF `QuantileReg` formula and quantile fitting.
-- `GAR/tsfit/tskewfit.py` — IMF `tskew_fit`.
-- `GAR/tsfit/tskew.py` — IMF `tskew_ppf` and `tskew_cdf`.
-- `results/quantile_regression_coefficients.csv` — all numerical coefficients.
+- `GAR/dnb_gar.py`: `PREDICTORS`, `DEPENDENT_VARIABLE`, `QUANTILES`, `DEFAULT_HORIZON`.
+- `results/quantile_regression_coefficients.csv`: verified fifth-percentile coefficients.
+- `results/quantile_regression_diagnostics.csv`, `results/in_sample_conditional_quantiles.csv`: estimation count and date ranges.
+- `BQR data yoy.xlsx`, sheet `data_yoy`.
+- Ossandon Busch et al. (2022), Figure 4 (page 6) for quantile-regression intuition.
 
-## Slide 4 — Conditional Growth Distribution and Tail Risks
+## Slide 3 — From Quantile Regressions to a Conditional Growth Distribution
 
-**Key message:** The latest model run places the fitted 5th-percentile growth estimate below zero, while its in-sample history is not a real-time forecast evaluation.
+**Main takeaway:** Seven conditional QR predictions for one input vector are fitted with the IMF parametric T-skew method to obtain one complete conditional distribution.
 
 **Slide content**
 
-For the latest input origin, 2026Q1, with target date 2027Q1:
+1. Estimate the seven quantile regressions on the historical sample.
+2. Insert one observed input vector \(X_t\).
+3. Evaluate each fitted regression to obtain seven conditional quantile predictions.
+4. Fit the IMF T-skew distribution to those seven predictions.
+5. Use the resulting distribution to calculate its quantiles and probabilities.
 
-| Output | Current result |
+\[
+\widehat{Q}_{\tau}^{\,QR}(X_t)
+\quad(\tau=0.05,\ldots,0.95)
+\ \longrightarrow\
+\widehat{F}_{T}(\,\cdot\mid X_t;\widehat{loc},\widehat{scale},
+\widehat{skew},\widehat{df}\,)
+\]
+
+- Orange points in the figure are the **seven direct QR predictions** at their associated cumulative probabilities.
+- The continuous curve is the **fitted T-skew CDF**, evaluated using the actual baseline parameters and the IMF CDF function.
+- The red diamond marks the fitted T-skew fifth percentile, \(-2.549\%\); the green diamond marks its median, \(2.153\%\).
+- The direct QR fifth percentile is \(-2.433\%\). It can differ from the fitted T-skew fifth percentile because the T-skew fit reconciles all seven QR estimates rather than simply copying one QR output.
+
+**Figure**
+
+![Seven baseline quantile-regression estimates and fitted T-skew CDF](results/presentation_figures/figure_quantiles_to_tskew_cdf.png)
+
+The display is zoomed to the common central 90% range for readability; the plotted distribution itself is the existing IMF T-skew distribution.
+
+**Speaker notes**
+
+Emphasize that the fifth-percentile regression alone is only one conditional quantile. The full distribution is introduced by fitting a T-skew curve to all seven estimates. The reference paper's Figure 5 also illustrates the idea of constructing a distribution from estimated quantiles, but its fitted distribution is non-parametric; the curve shown here is the IMF T-skew fit and is calculated from this repository's actual baseline outputs.
+
+**Sources and references**
+
+- `GAR/dnb_gar.py`: `DNBGrowthAtRisk.predict`.
+- `GAR/tsfit/tskewfit.py`: `tskew_fit`.
+- `GAR/tsfit/tskew.py`: `tskew_cdf`, `tskew_ppf`.
+- `results/latest_forecast.csv`, `results/presentation_figures/figure_quantiles_to_tskew_cdf.png`.
+- Ossandon Busch et al. (2022), Figures 4–5 (pages 6 and 8), conceptual reference only.
+
+## Slide 4 — Interpreting a Single Growth-at-Risk Forecast
+
+**Main takeaway:** The baseline forecast is one conditional distribution for the 2026Q1 input vector and a 2027Q1 GDP-growth target.
+
+**Slide content**
+
+| Baseline output | Estimate |
 |---|---:|
-| Direct QR 5th percentile | −2.433% |
-| Fitted T-skew 5th percentile (reported GaR) | −2.549% |
-| Direct QR median, \(\tau=0.50\) | 2.098% |
+| Forecast origin → target | 2026Q1 → 2027Q1 |
+| Direct QR fifth percentile | −2.433% |
+| Fitted T-skew fifth percentile (GaR) | −2.549% |
 | Fitted T-skew median | 2.153% |
-| Fitted probability of growth below zero | 14.3% |
-| T-skew parameters | \(loc=2.858,\ scale=0.9003,\ skew=0.6042,\ df=2\) |
+| T-skew probability of negative growth | 14.3% |
 
-- The 5th percentile is a lower-tail cutoff of the fitted conditional distribution; it is not the probability of negative growth.
-- The 14.3% estimate is the T-skew CDF evaluated at zero.
-- In `latest_conditional_distribution.png`, the red dashed line marks T-skew GaR and the shaded area is the lower 5% tail.
-- `historical_growth_at_risk.png` shows full-sample in-sample fitted GaR alongside the aligned realized future growth values. These historical fitted values use the full-sample estimated relationships; they are not expanding-window or real-time forecasts.
-- No out-of-sample forecast performance claim is supported by these outputs.
+- In the PDF, the x-axis is four-quarter-ahead year-on-year real GDP growth; the y-axis is probability density.
+- The leftmost 5% of the fitted distribution is the model-implied lower tail. GaR is the threshold at its fifth percentile: outcomes below it account for 5% of this conditional distribution.
+- The negative-growth probability is a different quantity: the CDF evaluated at growth \(=0\%\).
+- The CDF shows the same fitted baseline distribution from a cumulative-probability perspective.
 
 **Figures**
 
-1. `results/latest_conditional_distribution.png` — primary figure; annotate the 5th percentile and negative-growth threshold if needed.
-2. `results/historical_growth_at_risk.png` — secondary figure; retain its “in-sample fitted” label.
+1. Existing PDF: `results/latest_conditional_distribution.png` (do not overwrite).
+2. New CDF: `results/presentation_figures/figure_baseline_conditional_cdf.png`.
 
-**Speaker explanation**
+The new CDF figure uses the same saved baseline T-skew parameters as the existing PDF and forecast output. Its visible x-axis focuses on the central 90% range; its CDF is evaluated from the same IMF function.
 
-The conditional distribution answers “what growth distribution does the model associate with these inputs?” Its 5th percentile is the reported downside-tail measure, while the CDF at zero answers a different question: the model-implied chance of negative growth. The historical chart is descriptive in-sample fit. It should not be read as evidence that the model predicted each historical outcome in real time.
+**Speaker notes**
 
-**Sources**
+This is the complete interpretation of one forecast before moving to EMA. The fifth percentile and probability of negative growth answer different questions: the first is a growth threshold, while the second is probability mass below zero. This is a conditional model estimate, not an unconditional probability and not a claim about forecast accuracy.
 
-- `results/latest_forecast.csv` — current origin, target, quantiles, T-skew parameters, and negative-growth probability.
+**Sources and references**
+
+- `results/latest_forecast.csv`: baseline date, direct and fitted quantiles, probability, and T-skew parameters.
 - `results/latest_conditional_distribution.png`.
-- `results/historical_growth_at_risk.png`.
-- `GAR/dnb_gar.py` — `write_model_results`, including in-sample status and latest forecast output.
+- `results/presentation_figures/figure_baseline_conditional_cdf.png`.
+- `GAR/tsfit/tskew.py`: IMF `tskew_cdf`.
+- Ossandon Busch et al. (2022), Figures 1, 3, and 7 (pages 2, 5, and 10), conceptual references.
 
-## Slide 5 — From Data to Tail-Risk Forecasts
+## Slide 5 — From DNB Data to a GaR Forecast: Python Implementation
 
-**Key message:** A small thesis-specific adapter prepares and aligns DNB inputs, then calls IMF quantile-regression and T-skew routines.
+**Main takeaway:** A thesis-specific adapter loads and aligns DNB inputs, then calls the original IMF quantile-regression and T-skew routines.
 
 **Slide content**
 
-### 1. Load and select BQR data — thesis-specific adapter
+### 1. Predictors and data loading
 
-Path: `GAR/dnb_gar.py`, constants and `load_dnb_data`.
+`GAR/dnb_gar.py` — thesis-specific adapter:
 
 ```python
 PREDICTORS = ("NF_YER", "NF_URX", "DF_LTN_NFCN", "DR_PYR")
 DATA_SHEET = "data_yoy"
+
 data = pd.read_excel(workbook_path, sheet_name=sheet_name)
 ```
 
-The runner defaults to `BQR data yoy.xlsx`; the adapter uses the `data_yoy` sheet and validates quarterly dates and required columns.
+`run_dnb_gar.py` supplies `BQR data yoy.xlsx` as the default workbook.
 
-### 2. Construct the four-quarter-ahead target — thesis-specific adapter
+### 2. Four-quarter target alignment
 
-Path: `GAR/dnb_gar.py`, `prepare_horizon_data`.
+`GAR/dnb_gar.py`, `prepare_horizon_data`:
 
 ```python
 prepared[TARGET_COLUMN] = data[dependent_variable].shift(-horizon)
 prepared[TARGET_DATE_COLUMN] = pd.Series(
     data.index, index=data.index
 ).shift(-horizon)
-prepared = prepared.dropna(
-    subset=[*predictors, TARGET_COLUMN, TARGET_DATE_COLUMN]
-)
 ```
 
-Predictors keep their date \(t\); the shifted `NF_YER` is the outcome at \(t+4\). The complete-case selection requires every selected predictor and target.
+### 3. Quantile-regression estimation
 
-### 3. Estimate conditional quantile regressions — adapter calls IMF implementation
-
-Path: `GAR/dnb_gar.py`, `DNBGrowthAtRisk.fit`; implementation in `GAR/quantfit/quantilereg.py`, `QuantileReg.__qfit_dict`.
+`GAR/dnb_gar.py`, `DNBGrowthAtRisk.fit`; estimator in `GAR/quantfit/quantilereg.py`:
 
 ```python
 regression = QuantileReg(
@@ -240,24 +225,18 @@ regression = QuantileReg(
 )
 ```
 
-The adapter passes the target, predictors, training rows, and seven quantiles to the IMF estimator without standardizing the BQR columns.
+### 4. Input vector, T-skew fit, and output
 
-### 4. Fit the T-skew distribution — adapter calls IMF implementation
-
-Path: `GAR/dnb_gar.py`, `DNBGrowthAtRisk.predict`; fitting routine in `GAR/tsfit/tskewfit.py`.
+`GAR/dnb_gar.py`, `DNBGrowthAtRisk.predict`:
 
 ```python
-distribution = tskew_fit(
-    quantile_values.copy(),
-    _TSKEW_FIT_PARAMETERS,
-)
+scenario = pd.DataFrame([values], columns=self.predictors)
+quantile_values = {
+    q: float(result.predict(scenario).iloc[0])
+    for q, result in self.regression.qfit_dict.items()
+}
+distribution = tskew_fit(quantile_values.copy(), _TSKEW_FIT_PARAMETERS)
 ```
-
-The conditional QR values at the requested input vector are fitted with the IMF T-skew distribution. The adapter then evaluates its quantile and CDF functions.
-
-### 5. Extract the tail-risk output — thesis-specific result writer
-
-Path: `GAR/dnb_gar.py`, `write_model_results`.
 
 ```python
 "qr_q05": latest_prediction["quantile_regression"][0.05],
@@ -267,177 +246,178 @@ Path: `GAR/dnb_gar.py`, `write_model_results`.
 ],
 ```
 
-The CSV keeps the direct QR 5th percentile distinct from the T-skew 5th percentile and negative-growth probability.
+The new input vector enters the **already fitted** regression at `result.predict(scenario)`; the QR coefficients are not refitted for that vector.
 
-**Figure / visual**
+**Implementation boundary**
 
-- Use a compact left-to-right pipeline:
-  `BQR worksheet → validate/align target → IMF QuantileReg → IMF T-skew fit → latest_forecast.csv + figures`.
-- Label the adapter steps “thesis-specific” and the regression/T-skew methods “IMF implementation.”
+- **Thesis-specific:** `run_dnb_gar.py` and `GAR/dnb_gar.py` handle data loading, quarterly alignment, information cutoff, model interface, and output writing.
+- **IMF methods reused:** `GAR/quantfit/quantilereg.py`, `GAR/tsfit/tskewfit.py`, and `GAR/tsfit/tskew.py`.
+- **Separate EMA layer:** `analysis/run_ema_sampling.py` supplies alternative inputs to the fitted adapter. It does not replace the baseline runner or IMF methods.
 
-**Speaker explanation**
+**Speaker notes**
 
-The adapter manages DNB data and timing; it does not replace the IMF estimation method. The forecasting origin, target alignment, input selection, and outputs are thesis-specific wiring. The quantile regression and T-skew fitting functions are called from the existing IMF package.
+Walk left to right from the BQR worksheet to the final outputs. The adapter defines the DNB data and timing; the imported IMF routines do the regression and T-skew fitting. EMA calls the adapter's prediction interface with a different predictor mapping after one historical fit.
 
-**Sources**
+**Sources and references**
 
-- `run_dnb_gar.py` — entry point and default workbook path.
-- `GAR/dnb_gar.py` — `load_dnb_data`, `prepare_horizon_data`, `DNBGrowthAtRisk.fit`, `DNBGrowthAtRisk.predict`, `write_model_results`.
-- `GAR/quantfit/quantilereg.py` — IMF regression estimator.
-- `GAR/tsfit/tskewfit.py` and `GAR/tsfit/tskew.py` — IMF distribution fitting and functions.
-- `results/latest_forecast.csv`.
+- `run_dnb_gar.py`.
+- `GAR/dnb_gar.py`: `load_dnb_data`, `prepare_horizon_data`, `DNBGrowthAtRisk.fit`, `DNBGrowthAtRisk.predict`, `write_model_results`.
+- `GAR/quantfit/quantilereg.py`: `QuantileReg`.
+- `GAR/tsfit/tskewfit.py`: `tskew_fit`.
+- `GAR/tsfit/tskew.py`: IMF T-skew density and distribution functions.
 
-## Slide 6 — From a Deterministic Forecast to Input Uncertainty
+## Slide 6 — Exploring Input Uncertainty with EMA Workbench
 
-**Key message:** The existing fitted model can be evaluated at multiple input vectors to study conditional tail-risk sensitivity while holding the estimated model fixed.
+**Main takeaway:** With the baseline model fitted once, 100 alternative input vectors yield 100 conditional growth distributions—not 100 equally probable GDP outcomes.
 
 **Slide content**
-
-**Current deterministic use**
 
 ```text
-One input vector X_t
-        ↓
-Fixed estimated QR coefficients and fitted T-skew method
-        ↓
-One conditional distribution and one set of tail-risk outputs
+Fit GaR once on 217 historical observations
+        ↓ keep fitted QR coefficients fixed
+EMA Workbench: 100 independent Latin Hypercube input vectors
+        ↓ existing DNBGrowthAtRisk.predict(input vector)
+Seven predicted quantiles → one IMF T-skew distribution per vector
 ```
 
-**Proposed EMA use**
+**Experiment settings**
 
-```text
-Many plausible input vectors X^(1), X^(2), ..., X^(N)
-        ↓
-Same fixed estimated model for every vector
-        ↓
-Distribution and tail-risk outputs for every scenario
-```
+- EMA Workbench **3.0.0**; Latin Hypercube Sampling; **100** scenarios; seed **20261103**.
+- Each input was sampled independently between its empirical BQR 5th and 95th percentiles:
 
-- In an initial experiment, the estimated QR coefficients and T-skew fitting method/settings remain fixed after baseline estimation. For each scenario, the model recomputes its conditional QR values and fits the T-skew distribution to those scenario-specific values; the distribution parameters and risk outputs can therefore change across scenarios.
-- The sampled macroeconomic inputs vary between scenarios.
-- Record how the T-skew 5th percentile, direct QR 5th percentile, and probability of negative growth vary.
-- This is **input uncertainty**. It is not coefficient uncertainty, model-form uncertainty, or stochastic shocks.
-- At present, `DNBGrowthAtRisk.predict` accepts one mapping of predictor values and returns conditional quantiles and distribution outputs. There is no EMA Workbench integration or batch scenario runner.
+| Input | Empirical 5th–95th percentile bounds |
+|---|---:|
+| `NF_YER` | −1.341 to 4.957 |
+| `NF_URX` | 1.979 to 11.300 |
+| `DF_LTN_NFCN` | −1.668 to 1.871 |
+| `DR_PYR` | −1.046 to 4.654 |
 
-**Figure / visual**
+- The figure overlays all 100 scenario-specific T-skew PDFs and highlights the observed 2026Q1 baseline.
+- Curves are reconstructed from the saved scenario-specific IMF T-skew parameters; no normal approximation is used.
+- Input bounds and independence are provisional exploratory assumptions. Sampled combinations may not preserve economic dependencies, are not equally likely futures, and the scenario distribution is not a calibrated predictive distribution.
 
-- Show the two flow diagrams side by side, with a bracket around the “fixed model” box in the EMA flow.
-- Emphasize that the target of investigation is the variation in conditional downside risk across inputs.
+**Figure**
 
-**Speaker explanation**
+![The 100 EMA scenario-specific conditional PDFs and baseline PDF](results/presentation_figures/figure_100_scenario_conditional_pdfs.png)
 
-The current prediction interface already separates fitting from prediction. In principle, one fitted model can be evaluated repeatedly at different input mappings. That provides a plausible point of connection for EMA, but a proper experiment still needs a defensible definition of uncertain inputs, plausible ranges, dependencies, and output measures.
+The figure displays the common central 90% range for legibility; all PDF normalization checks use the full support.
 
-**Sources**
+**Speaker notes**
 
-- `GAR/dnb_gar.py` — `DNBGrowthAtRisk.fit` and `DNBGrowthAtRisk.predict`.
-- `README.md` — explicitly states EMA/PRIM are not implemented.
+EMA changes the input vector, not the estimated relationship. The 100 lines are 100 model-conditional distributions for alternative inputs. They should not be read as 100 random draws of future GDP or as a probability distribution over plausible futures. The sampling bounds and independence assumption need substantive validation.
 
-## Slide 7 — Exploring Input Uncertainty Through Scenario Sampling
+**Sources and references**
 
-**Key message:** A first EMA design could sample a reviewed range for each input, evaluate every vector with the same fitted model, and compare the resulting tail-risk outputs.
+- `analysis/run_ema_sampling.py`: one fit, LHS setup, seed, prediction callback, saved scenario parameters.
+- `analysis/build_presentation_figures.py`: distribution reconstruction and validation.
+- `results/ema_sampling/run_metadata.json`, `results/ema_sampling/scenario_results.csv`.
+- `results/presentation_figures/figure_100_scenario_conditional_pdfs.png`.
+- Ossandon Busch et al. (2022), methodological context for GaR; this EMA sampling design is the thesis proof of concept.
+
+## Slide 7 — Input Sensitivity: Which Variables Are Associated with Tail Risk?
+
+**Main takeaway:** In this sampled design, several inputs are associated with scenario GaR; the positive unemployment association is counterintuitive and merits investigation.
 
 **Slide content**
 
-### Proposed, not yet run
+![Existing four-panel input versus GaR scatterplot](results/ema_sampling/figure2_inputs_vs_gar.png)
 
-1. Confirm which inputs should be treated as uncertain and whether all four belong in the experiment.
-2. As a transparent **provisional** range design, consider each input’s observed 5th–95th percentile in `data_yoy`. The current empirical bounds are:
+- Each dot is one complete scenario. The x-axis varies one predictor; the other three inputs also vary across dots.
+- The y-axis is the scenario's fitted T-skew fifth-percentile GaR. The horizontal red dashed line is baseline GaR, \(-2.549\%\).
+- Descriptive Spearman associations across the 100 scenarios:
 
-   | Input | Observed 5th percentile | Observed 95th percentile |
-   |---|---:|---:|
-   | `NF_YER` | −1.341 | 4.957 |
-   | `NF_URX` | 1.979 | 11.300 |
-   | `DF_LTN_NFCN` | −1.668 | 1.871 |
-   | `DR_PYR` | −1.046 | 4.654 |
+| Input | Spearman association with scenario GaR |
+|---|---:|
+| `NF_YER` | +0.261 |
+| `NF_URX` | **+0.745** |
+| `DF_LTN_NFCN` | −0.450 |
+| `DR_PYR` | +0.531 |
 
-   Values are in the prepared BQR column units. These marginal ranges are a starting point for supervisor review, not validated economic plausibility bounds; transformation metadata should be confirmed first.
-3. Generate an experimental design such as Latin Hypercube Sampling (LHS), initially specifying whether inputs are sampled independently. Consider preserving observed dependencies if independent combinations are implausible.
-4. Pass each sampled input vector through the same fitted `DNBGrowthAtRisk` model.
-5. Store scenario inputs plus direct QR \(q_{0.05}\), T-skew \(q_{0.05}\), and \(\Pr(Y_{t+4}<0)\).
-6. Define an adverse-outcome threshold before examining scenarios; later use PRIM to identify interpretable input combinations associated with adverse tail-risk outcomes.
+- Higher unemployment is associated with a **higher (less negative) GaR** in these sampled combinations. This is economically counterintuitive and should be treated as a question for interpretation and model/design review—not as an isolated causal effect.
+- These are univariate associations over one independent LHS design, not causal effects or formal global sensitivity rankings.
 
-### Illustrative table — hypothetical design points, not sampled or evaluated
+**Speaker notes**
 
-The input rows below combine observed marginal percentiles only to illustrate the table structure. They are not verified joint scenarios. No GaR has been calculated for them.
+Keep the existing scatterplot. Point out that each marker is a full four-variable scenario, so the plotted bivariate relation also reflects changes in the other predictors. The positive unemployment association is particularly important to discuss: it may reflect conditional-regression structure, interactions implicit in simultaneous input variation, or the provisional sample design. The plot alone does not distinguish these explanations.
 
-| Scenario | Sampled GDP growth `NF_YER` | Sampled unemployment `NF_URX` | Sampled lending rate `DF_LTN_NFCN` | Sampled disposable income growth `DR_PYR` | Resulting T-skew \(q_{0.05}\) GaR |
-|---|---:|---:|---:|---:|---|
-| Current-input reference (observed 2026Q1) | 0.584 | 6.263 | −0.012 | 1.000 | **−2.549% (existing model forecast)** |
-| Illustrative low-side corner (marginal 5th percentiles) | −1.341 | 1.979 | −1.668 | −1.046 | Not evaluated |
-| Illustrative high-side corner (marginal 95th percentiles) | 4.957 | 11.300 | 1.871 | 4.654 | Not evaluated |
+**Sources and references**
 
-**Proposed visualizations**
+- Existing figure retained: `results/ema_sampling/figure2_inputs_vs_gar.png`.
+- `results/ema_sampling/scenario_results.csv`.
+- `results/presentation_figures/scenario_spearman_associations.csv`.
+- `results/presentation_figures/presentation_figure_validation.json`.
 
-- Histogram of T-skew GaR across the sampled cases.
-- Scatterplots of each input against T-skew GaR.
-- Parallel-coordinates view of scenarios with especially adverse GaR.
-- Later: PRIM boxes/rules that summarize input combinations associated with a pre-defined adverse outcome.
+## Slide 8 — Comparing Adverse and Favorable Input Regions
 
-**Speaker explanation**
-
-The empirical percentile ranges make the example traceable to the supplied data, but do not by themselves establish plausible policy scenarios. The two corner rows intentionally demonstrate why input dependence matters: a combination of marginal extremes may not occur or be economically coherent. No scenario sampling, input-to-GaR calculation, or PRIM analysis has been run for this slide.
-
-**Sources**
-
-- `BQR data yoy.xlsx` — `data_yoy` empirical input distributions and latest 2026Q1 row.
-- `results/latest_forecast.csv` — existing reference forecast (only the first row is an evaluated result).
-- `GAR/dnb_gar.py` — current one-vector `predict` interface and returned outputs.
-- All sampling, histograms, scatterplots, parallel coordinates, and PRIM are proposed future work.
-
-## Slide 8 — Research Questions and Next Steps
-
-**Key message:** Before interpreting EMA results, the baseline’s inputs, uncertainty ranges, dependence assumptions, and evaluation criteria need to be agreed and documented.
+**Main takeaway:** The lowest- and highest-GaR groups produce different conditional distribution mixtures, but this selected-group comparison is descriptive rather than causal or predictive.
 
 **Slide content**
 
-### Questions for supervisor discussion
+Rank the 100 scenarios by fitted T-skew GaR. Define the 10 lowest-GaR scenarios as the **adverse group**, and the 10 highest-GaR scenarios as the **favorable group**. “Adverse” and “favorable” refer only to this GaR ranking; they do not establish economic plausibility or welfare effects. Keep the observed 2026Q1 baseline separate.
 
-- Is the current GDP GaR implementation a suitable starting point for studying EMA within the broader MaR thesis?
-- Which inputs should be treated as uncertain, and should current `NF_YER` itself be varied alongside the other predictors?
-- How should plausible ranges be justified, given that the BQR columns are prepared data and some transformations/units are not fully documented?
-- Should inputs be sampled independently, or should observed economic dependencies be preserved?
-- Which outcomes should be examined: T-skew GaR, direct QR 5th percentile, negative-growth probability, or additional distribution summaries?
-- How should robustness and scenario discovery be evaluated and communicated?
-- Which other MaR models or macroeconomic target variables should eventually be included?
+For group \(G\) with ten scenario CDFs:
 
-### Proposed sequence
+\[
+F_G(y)=\frac{1}{10}\sum_{i\in G}F_i(y),
+\qquad
+f_G(y)=\frac{1}{10}\sum_{i\in G}f_i(y).
+\]
 
-1. Confirm the baseline specification, data definitions, and reproducibility.
-2. Agree on uncertain inputs, ranges, and dependence structure.
-3. Design and document a sampling experiment.
-4. Connect sampled vectors to the existing fitted prediction method.
-5. Analyze sensitivity and, if justified, apply PRIM for scenario discovery.
-6. Extend to additional MaR models or target variables only after the initial experiment is understood.
+The mixture fifth percentile solves \(F_G(q_{0.05,G})=0.05\) and is found by numerical root-finding. It is not the average of the ten individual fifth percentiles.
 
-**Figure / visual**
+| Conditional distribution | Individual GaR range | Mean individual GaR | Mixture q05 | Mean individual \(P(Y<0)\) | Mixture \(P(Y<0)\) |
+|---|---:|---:|---:|---:|---:|
+| Baseline (2026Q1) | −2.549% | −2.549% | −2.549% | 14.29% | 14.29% |
+| Adverse 10 | −5.258% to −3.854% | −4.410% | **−4.418%** | 27.10% | 27.10% |
+| Favorable 10 | 0.610% to 1.780% | 1.010% | **0.989%** | 2.42% | 2.42% |
 
-- Roadmap with four stages: `Baseline confirmed → Sampling design → EMA evaluation → Sensitivity / PRIM and broader MaR`.
-- Mark steps 2–4 as planned rather than completed.
+The mean negative-growth probability equals the mixture CDF at zero because both use equal weights. The mixture q05, by contrast, is obtained by inverting the average CDF and differs from the mean individual GaR in both groups.
 
-**Speaker explanation**
+**Figures**
 
-The principal unresolved issue is not how to generate a large number of scenarios; it is whether those scenarios represent defensible uncertainties and relationships. Resolving the BQR transformations and setting evaluation criteria before sampling helps maintain scientific traceability and avoids presenting illustrative results as empirical evidence.
+1. PDF comparison: `results/presentation_figures/figure_adverse_favorable_mixture_pdfs.png`.
+2. CDF comparison: `results/presentation_figures/figure_adverse_favorable_mixture_cdfs.png`.
 
-**Sources**
+Both figures show the baseline and equally weighted 10-scenario mixtures. The visible x-range is the central 90% display range; normalization and inversion were checked on the actual T-skew functions.
 
-- `README.md` — current implementation status, data caveats, and future development.
-- `METHODOLOGY.md` — model assumptions and validation limitations.
-- `GAR/dnb_gar.py` — current fitted-model prediction interface.
+**Interpretation and next steps**
 
-## Existing files and results consulted
+- The scenario groups are selected using GaR itself. They illustrate conditional tail outcomes; they do not show which inputs caused the outcomes.
+- Equal weighting within deliberately selected groups is a descriptive aggregation, not a calibrated predictive distribution of future GDP.
+- Next: confirm input definitions and transformations; validate bounds; investigate realistic predictor dependencies; conduct formal sensitivity analysis; consider PRIM for adverse scenario discovery; then test additional MaR target variables.
 
-- Data and definitions: `BQR data yoy.xlsx` (`data_yoy`) and `BMPE_vintages_QLY (1).xlsx` (`List_variables`).
-- Thesis entry point and adapter: `run_dnb_gar.py`, `GAR/dnb_gar.py`.
-- IMF methodology implementations: `GAR/quantfit/quantilereg.py`, `GAR/tsfit/tskewfit.py`, `GAR/tsfit/tskew.py`.
-- Existing fitted outputs: `results/quantile_regression_coefficients.csv`, `results/quantile_regression_diagnostics.csv`, `results/latest_forecast.csv`, `results/in_sample_conditional_quantiles.csv`.
-- Existing figures: `results/latest_conditional_distribution.png`, `results/historical_growth_at_risk.png`.
-- Context and caveats: `README.md`, `METHODOLOGY.md`, `THESIS_README.md`.
+**Speaker notes**
 
-## Information to resolve before finalizing the slides
+Explain the different meanings of the reported statistics. “Mean individual GaR” averages the ten scenario fifth percentiles. “Mixture q05” instead forms one equally weighted mixture distribution and locates its fifth percentile. The negative-growth probability is linear in the CDF, so its mixture value equals the average scenario probability. These groups are chosen by GaR ranking, so avoid causal language and present the exercise as preparation for formal sensitivity analysis and PRIM.
 
-- Confirm the precise preprocessing and units represented by the BQR `DR_PYR` series. The BMPE list defines `PYR` as real gross personal disposable income, but that does not fully specify how the prepared `DR_PYR` column was transformed.
-- Confirm definitions and units for `DF_LTN_NFCN` and the other prepared columns before interpreting coefficient magnitudes or describing scenario values as policy levers.
-- Decide and document how to define plausible scenario ranges and whether predictor dependencies should be maintained.
-- Keep the latest conditional forecast separate from the in-sample fitted history; an expanding-window/out-of-sample evaluation is not present in the existing artifacts.
-- Check that the coefficient file and forecast file correspond to the same current specification when regenerating results for a later presentation.
+**Sources and references**
+
+- `results/ema_sampling/scenario_results.csv`.
+- `results/presentation_figures/adverse_favorable_scenario_members.csv`.
+- `results/presentation_figures/adverse_favorable_group_summary.csv`.
+- `results/presentation_figures/presentation_distribution_summary.csv`.
+- `results/presentation_figures/presentation_figure_validation.json`.
+- `analysis/build_presentation_figures.py`: group selection, equal-weight mixture CDF/PDF, and `scipy.optimize.brentq` inversion.
+- Ossandon Busch et al. (2022), Figures 1, 3, and 7 for conditional-distribution interpretation; its non-parametric fitting method is distinct from this IMF T-skew model.
+
+## Reproducibility and presentation files
+
+Run the analysis from the repository root with the project's configured Python environment:
+
+```powershell
+python analysis/build_presentation_figures.py
+```
+
+The script reads, but does not overwrite, `results/latest_forecast.csv` and `results/ema_sampling/scenario_results.csv`. It fits the baseline model once to verify that the saved baseline and scenario outputs correspond to the current data and inputs; it then evaluates each saved input through the already fitted model, without refitting coefficients per scenario. All new figures, validation results, correlations, group memberships, and summaries are written to `results/presentation_figures/`.
+
+### Figure filenames for the slide deck
+
+- Slide 3: `figure_quantiles_to_tskew_cdf.png`
+- Slide 4: `results/latest_conditional_distribution.png` and `figure_baseline_conditional_cdf.png`
+- Slide 6: `figure_100_scenario_conditional_pdfs.png`
+- Slide 7: `results/ema_sampling/figure2_inputs_vs_gar.png` (retained existing figure)
+- Slide 8: `figure_adverse_favorable_mixture_pdfs.png` and `figure_adverse_favorable_mixture_cdfs.png`
+
+### Scientific reference
+
+Ossandon Busch et al. (2022). “Growth at risk: Methodology and applications in an open-source platform.” *Latin American Journal of Central Banking*. [https://doi.org/10.1016/j.latcb.2022.100068](https://doi.org/10.1016/j.latcb.2022.100068). Figures 1, 3, 4, 5, and 7 are conceptual references as identified in the corresponding slides; the paper's non-parametric fitted distributions are not the parametric IMF T-skew distributions used here.

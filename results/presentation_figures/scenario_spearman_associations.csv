@@ -1,0 +1,5 @@
+predictor,spearman_rho,p_value_descriptive,interpretation_note
+NF_YER,0.26100210021002096,0.008720156812688114,Univariate association across this sampled design; not causal and not a formal global sensitivity ranking.
+NF_URX,0.745046504650465,6.233778655923449e-19,Univariate association across this sampled design; not causal and not a formal global sensitivity ranking.
+DF_LTN_NFCN,-0.4503810381038103,2.5799610041916343e-06,Univariate association across this sampled design; not causal and not a formal global sensitivity ranking.
+DR_PYR,0.5308610861086108,1.3347893582499737e-08,Univariate association across this sampled design; not causal and not a formal global sensitivity ranking.

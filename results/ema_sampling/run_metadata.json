@@ -1,0 +1,73 @@
+{
+  "created_utc": "2026-11-03T11:57:52.461532+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "ema_workbench_version": "3.0.0",
+  "python_version": "3.13.2 (tags/v3.13.2:4f8bb39, Feb  4 2025, 15:23:48) [MSC v.1942 64 bit (AMD64)]",
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "model_callback_evaluations": 100,
+  "successful_scenarios": 100,
+  "failed_scenarios": [],
+  "model_fit_calls": 1,
+  "training_observations": 217,
+  "information_cutoff": "2026-03-31",
+  "forecast_horizon_quarters": 4,
+  "independent_input_sampling": true,
+  "sampling_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "NF_URX",
+      "lower_p05": 1.9787452,
+      "upper_p95": 11.3,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_LTN_NFCN",
+      "lower_p05": -1.6683500000000002,
+      "upper_p95": 1.8712340000000012,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DR_PYR",
+      "lower_p05": -1.0464030091315522,
+      "upper_p95": 4.653835579712236,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "baseline_comparison_tolerance": 1e-08,
+  "baseline_comparisons": {
+    "QR_q05": {
+      "fitted_model": -2.433072451868769,
+      "existing_baseline_file": -2.433072451868769,
+      "absolute_difference": 0.0
+    },
+    "Tskew_GaR_q05": {
+      "fitted_model": -2.54934340786209,
+      "existing_baseline_file": -2.54934340786209,
+      "absolute_difference": 0.0
+    },
+    "Tskew_Median": {
+      "fitted_model": 2.1525036450645008,
+      "existing_baseline_file": 2.1525036450645008,
+      "absolute_difference": 0.0
+    },
+    "Probability_Negative": {
+      "fitted_model": 0.1429463721667743,
+      "existing_baseline_file": 0.1429463721667743,
+      "absolute_difference": 0.0
+    }
+  },
+  "assumptions": [
+    "Empirical marginal 5th and 95th percentiles are provisional exploratory bounds, not validated economic uncertainty ranges.",
+    "Inputs are sampled independently; combinations can violate historical economic dependencies and are not equally likely future states.",
+    "The distribution of scenario-level GaR outcomes is not a calibrated predictive probability distribution.",
+    "The fitted quantile-regression coefficients are fixed across scenarios; the existing predict method refits only the conditional T-skew distribution from scenario-specific conditional quantiles."
+  ]
+}

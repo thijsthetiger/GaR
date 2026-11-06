@@ -1,0 +1,53 @@
+{
+  "training_observations": 217,
+  "model_fit_calls": 1,
+  "scenario_predict_calls": 100,
+  "baseline_values_match_saved_forecast": true,
+  "scenario_inputs_reproduce_saved_outputs": true,
+  "maximum_scenario_output_absolute_difference": 0.0,
+  "scenario_count": 100,
+  "adverse_unique_scenarios": 10,
+  "favorable_unique_scenarios": 10,
+  "groups_disjoint": true,
+  "mixture_quantile_cdf_residuals": {
+    "Adverse 10 (lowest GaR)": 3.4139358007223564e-15,
+    "Favorable 10 (highest GaR)": 3.164135620181696e-15
+  },
+  "scenario_rows_verified": 100,
+  "distribution_count_validated": 101,
+  "pdf_integral_minimum": 0.9999999999999689,
+  "pdf_integral_maximum": 1.0000000000000098,
+  "maximum_pdf_integral_absolute_error": 3.108624468950438e-14,
+  "cdf_monotonicity_violations": 0,
+  "maximum_q05_saved_value_absolute_difference": 0.0,
+  "maximum_q05_cdf_probability_absolute_difference": 3.469446951953614e-17,
+  "baseline_q05": -2.54934340786209,
+  "baseline_negative_growth_probability": 0.1429463721667743,
+  "spearman_associations": [
+    {
+      "predictor": "NF_YER",
+      "spearman_rho": 0.26100210021002096,
+      "p_value_descriptive": 0.008720156812688114,
+      "interpretation_note": "Univariate association across this sampled design; not causal and not a formal global sensitivity ranking."
+    },
+    {
+      "predictor": "NF_URX",
+      "spearman_rho": 0.745046504650465,
+      "p_value_descriptive": 6.233778655923449e-19,
+      "interpretation_note": "Univariate association across this sampled design; not causal and not a formal global sensitivity ranking."
+    },
+    {
+      "predictor": "DF_LTN_NFCN",
+      "spearman_rho": -0.4503810381038103,
+      "p_value_descriptive": 2.5799610041916343e-06,
+      "interpretation_note": "Univariate association across this sampled design; not causal and not a formal global sensitivity ranking."
+    },
+    {
+      "predictor": "DR_PYR",
+      "spearman_rho": 0.5308610861086108,
+      "p_value_descriptive": 1.3347893582499737e-08,
+      "interpretation_note": "Univariate association across this sampled design; not causal and not a formal global sensitivity ranking."
+    }
+  ],
+  "method_note": "Conditional distributions use the saved scenario-specific IMF T-skew parameters and IMF T-skew PDF/CDF/PPF functions. The GaR quantile regressions are fitted once for alignment verification, not re-estimated per scenario."
+}

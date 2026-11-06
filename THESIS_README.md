@@ -3,8 +3,9 @@
 This repository contains the original IMF Growth-at-Risk (GaR) Python
 implementation and a small DNB-specific, non-Excel entry point. The thesis
 adapter reuses the IMF quantile-regression estimator and T-skew distribution
-fit. It does not implement the EMA Workbench, PRIM, a joint density, or
-Inflation-at-Risk.
+fit. A separate script implements an initial EMA Workbench input-sampling
+proof of concept using the fitted adapter. PRIM, a joint density, and
+Inflation-at-Risk are not implemented.
 
 ## Run the model
 
@@ -112,10 +113,13 @@ result = model.predict(
 )
 ```
 
-For use as an EMA model, the future adapter can pass an input mapping to
-`predict` and collect `distribution_quantiles[0.05]`,
-`quantile_regression[0.05]`, or the full distribution parameters and quantiles.
-No EMA Workbench integration is included yet.
+The proof-of-concept EMA Workbench connection is in
+`analysis/run_ema_sampling.py`. It fits the GaR model once, then passes
+sampled input mappings to `predict` and records `distribution_quantiles[0.05]`,
+`quantile_regression[0.05]`, the T-skew median, negative-growth probability,
+and distribution parameters. Its independent empirical percentile bounds are
+provisional; PRIM and broader sensitivity/robustness analyses are not
+implemented.
 
 ## Attribution and license
 
