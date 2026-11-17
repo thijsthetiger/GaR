@@ -1,0 +1,64 @@
+{
+  "created_utc": "2026-11-17T10:28:08.996561+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "model_name": "model_2_external_demand",
+  "model_label": "External demand and competitiveness",
+  "predictors": [
+    "NF_YER",
+    "DN_CXD",
+    "DR_FOD"
+  ],
+  "narrative": "External demand and competitiveness conditions affect export-driven production, output, and inflation.",
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "input_range_percentiles": [
+    0.05,
+    0.95
+  ],
+  "input_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DN_CXD",
+      "lower_p05": -6.558240129213516,
+      "upper_p95": 15.413383927040499,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DR_FOD",
+      "lower_p05": -2.0353599355243546,
+      "upper_p95": 11.197265865858583,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "reference_output": {
+    "NF_YER": 0.5842116591916522,
+    "DN_CXD": -2.9959706500912944,
+    "DR_FOD": 1.969484097374945,
+    "forecast_origin": "2026-03-31",
+    "target_date": "2027-03-31",
+    "horizon_quarters": 4,
+    "training_observations": 217,
+    "qr_q05": -2.322695633072913,
+    "tskew_q05_GaR": -1.936671448246741,
+    "tskew_q50": 2.119324339424852,
+    "probability_growth_below_zero": 0.12474931126566953
+  },
+  "failed_scenarios": 0,
+  "model_fit_calls": 1,
+  "training_observations": 217,
+  "information_cutoff": "2026-03-31",
+  "forecast_horizon_quarters": 4,
+  "independent_input_sampling": true,
+  "assumptions": [
+    "Empirical marginal input percentiles are provisional bounds, not validated economic uncertainty ranges.",
+    "Inputs are sampled independently; combinations can violate historical economic dependencies and are not probabilities of future states.",
+    "The fitted quantile-regression coefficients are fixed across scenarios; only the conditional T-skew distribution is refit from scenario-specific conditional quantiles."
+  ]
+}

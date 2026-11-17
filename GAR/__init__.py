@@ -61,7 +61,7 @@ else:
     def _require_excel_automation(*args, **kwargs):
         raise ImportError(
             'The original IMF Excel workflow requires xlwings and Windows '
-            'pywin32. Use run_dnb_gar.py for the standalone DNB model.'
+            'pywin32. Use run_narrative_gar.py for the active thesis models.'
         )
 
     do_partition = _require_excel_automation

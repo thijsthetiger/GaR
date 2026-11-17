@@ -1,0 +1,101 @@
+{
+  "created_utc": "2026-11-17T10:56:26.263969+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "narrative_id": "model_2_external_demand",
+  "model_name": "model_2_external_demand",
+  "model_label": "External demand and competitiveness",
+  "outcome": "growth",
+  "dependent_variable": "NF_YER",
+  "primary_risk_indicator": "Growth-at-Risk fitted conditional 5% percentile",
+  "predictors": [
+    "NF_YER",
+    "DN_CXD",
+    "DR_FOD"
+  ],
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "input_range_percentiles": [
+    0.05,
+    0.95
+  ],
+  "input_bound_sample": "Each predictor's full available history in the raw BQR data; the same bounds are used for both outcomes regardless of their different aligned estimation samples.",
+  "input_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DN_CXD",
+      "lower_p05": -6.558240129213516,
+      "upper_p95": 15.413383927040499,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DR_FOD",
+      "lower_p05": -2.0353599355243546,
+      "upper_p95": 11.197265865858583,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "reference_output": {
+    "NF_YER": 0.5842116591916522,
+    "DN_CXD": -2.9959706500912944,
+    "DR_FOD": 1.969484097374945,
+    "narrative_id": "model_2_external_demand",
+    "outcome": "growth",
+    "dependent_variable": "NF_YER",
+    "forecast_origin": "2026-03-31",
+    "target_date": "2027-03-31",
+    "horizon_quarters": 4,
+    "training_observations": 217,
+    "primary_tail_quantile": 0.05,
+    "primary_tail_risk": -1.936671448246741,
+    "qr_q05": -2.322695633072913,
+    "qr_q10": 0.2169155316226398,
+    "qr_q25": 1.1265242888012272,
+    "qr_q50": 1.9334477143827753,
+    "qr_q75": 2.7327452730631556,
+    "qr_q90": 3.491229213247313,
+    "qr_q95": 4.154467066082004,
+    "tskew_q05": -1.936671448246741,
+    "tskew_q10": -0.40625391730946214,
+    "tskew_q25": 1.1090012877202753,
+    "tskew_q50": 2.119324339424852,
+    "tskew_q75": 2.839296204897808,
+    "tskew_q90": 3.507592484084902,
+    "tskew_q95": 4.093063436969786,
+    "tskew_loc": 2.6035,
+    "tskew_scale": 0.9285,
+    "tskew_skew": 0.7049,
+    "tskew_df": 2
+  },
+  "successful_scenarios": 100,
+  "failed_scenarios": 0,
+  "scenarios_with_direct_quantile_crossing": 27,
+  "model_fit_calls": 1,
+  "coefficients_fixed_across_scenarios": true,
+  "training_observations": 217,
+  "training_target_start": "1972-03-31",
+  "training_target_end": "2026-03-31",
+  "information_cutoff": "2026-03-31",
+  "forecast_horizon_quarters": 4,
+  "independent_input_sampling": true,
+  "scenario_frequency_interpretation": "Exploratory design coverage, not a probability of future events.",
+  "assumptions": [
+    "Empirical marginal input percentiles are provisional bounds, not validated economic uncertainty ranges.",
+    "Inputs are sampled independently; combinations can violate historical economic dependencies.",
+    "Regression coefficients are fitted once per outcome and remain fixed across scenarios; only conditional quantiles and the T-skew distribution are recomputed for scenario inputs.",
+    "Within a narrative, both outcomes use one shared LHS design and the same predictor-history bounds.",
+    "Combined growth and inflation results are separate conditional marginal distributions, not a joint probability distribution."
+  ]
+}

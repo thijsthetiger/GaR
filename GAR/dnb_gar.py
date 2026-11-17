@@ -8,6 +8,7 @@ forecast-origin filtering, and output formatting are thesis-specific adapters.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+import json
 from pathlib import Path
 from typing import Any
 import warnings
@@ -16,18 +17,37 @@ import numpy as np
 import pandas as pd
 from statsmodels.tools.sm_exceptions import IterationLimitWarning
 
+from config import (
+    DATA_SHEET,
+    DEPENDENT_VARIABLES,
+    EMA_INPUT_LOWER_PERCENTILE,
+    EMA_INPUT_UPPER_PERCENTILE,
+    FORECAST_HORIZON,
+    MODEL_SEQUENCE,
+    MODEL_SPECS,
+    OUTCOME_SPECS,
+    QR_CONFIDENCE_ALPHA,
+    QR_MAX_ITER,
+    QR_PARAMETER_TOLERANCE,
+    QUANTILE_LEVELS,
+    TSKEW_REQUIRED_QUANTILES,
+)
 from GAR.quantfit.quantilereg import QuantileReg
 from GAR.tsfit.tskew import tskew_cdf, tskew_pdf, tskew_ppf
 from GAR.tsfit.tskewfit import tskew_fit
 
 
-DEPENDENT_VARIABLE = "NF_YER"
-PREDICTORS = ("NF_YER", "NF_URX", "DF_LTN_NFCN", "DR_PYR")
-QUANTILES = (0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95)
+DEFAULT_PREDICTORS = MODEL_SPECS[MODEL_SEQUENCE[0]]["predictors"]
+DEFAULT_DEPENDENT_VARIABLE = DEPENDENT_VARIABLES["growth"]
+QUANTILES = QUANTILE_LEVELS
 TARGET_COLUMN = "future_NF_YER"
 TARGET_DATE_COLUMN = "target_date"
-DATA_SHEET = "data_yoy"
-DEFAULT_HORIZON = 4
+DEFAULT_HORIZON = FORECAST_HORIZON
+
+
+def target_column_for(dependent_variable: str) -> str:
+    """Return the aligned future-outcome column for a dependent variable."""
+    return f"future_{dependent_variable}"
 
 _TSKEW_FIT_PARAMETERS: dict[str, dict[str, Any]] = {
     "mode": {"constraint": "Free", "value": None},
@@ -37,6 +57,61 @@ _TSKEW_FIT_PARAMETERS: dict[str, dict[str, Any]] = {
     "skew_low": {"constraint": "Free", "value": None},
     "skew_high": {"constraint": "Free", "value": None},
 }
+
+
+def get_model_spec(model_name: str) -> dict[str, Any]:
+    """Return the thesis narrative model specification for an EMA run."""
+    if model_name not in MODEL_SPECS:
+        raise ValueError(
+            f"Unknown model specification {model_name!r}. "
+            f"Available models: {', '.join(MODEL_SEQUENCE)}."
+        )
+    return MODEL_SPECS[model_name].copy()
+
+
+def fit_model_spec(
+    model_name: str,
+    data: pd.DataFrame,
+    as_of: str | pd.Timestamp | None = None,
+    horizon: int = DEFAULT_HORIZON,
+    dependent_variable: str = DEFAULT_DEPENDENT_VARIABLE,
+) -> DNBGrowthAtRisk:
+    """Fit a narrative model for one configured dependent variable."""
+    spec = get_model_spec(model_name)
+    prepared = prepare_horizon_data(
+        data,
+        horizon=horizon,
+        dependent_variable=dependent_variable,
+        predictors=spec["predictors"],
+    )
+    cutoff = data.index.max() if as_of is None else as_of
+    model = DNBGrowthAtRisk(
+        horizon=horizon,
+        predictors=spec["predictors"],
+        dependent_variable=dependent_variable,
+    )
+    return model.fit(prepared, as_of=cutoff)
+
+
+def provisional_input_bounds(
+    data: pd.DataFrame,
+    predictors: Sequence[str],
+    lower_percentile: float = EMA_INPUT_LOWER_PERCENTILE,
+    upper_percentile: float = EMA_INPUT_UPPER_PERCENTILE,
+) -> dict[str, tuple[float, float]]:
+    """Create provisional empirical bounds for EMA input uncertainty."""
+    if not 0 <= lower_percentile < upper_percentile <= 1:
+        raise ValueError(
+            "EMA input percentiles must satisfy "
+            "0 <= lower < upper <= 1."
+        )
+    bounds: dict[str, tuple[float, float]] = {}
+    for name in predictors:
+        series = pd.to_numeric(data[name], errors="raise")
+        lower = float(series.quantile(lower_percentile))
+        upper = float(series.quantile(upper_percentile))
+        bounds[name] = (lower, upper)
+    return bounds
 
 
 def load_dnb_data(
@@ -82,11 +157,10 @@ def load_dnb_data(
         if not np.all(quarter_steps == 1):
             raise ValueError("The DNB data must contain consecutive quarters.")
 
-    missing_columns = [
-        column
-        for column in (DEPENDENT_VARIABLE, *PREDICTORS)
-        if column not in data.columns
-    ]
+    required_columns = set(DEPENDENT_VARIABLES.values())
+    for spec in MODEL_SPECS.values():
+        required_columns.update(spec["predictors"])
+    missing_columns = sorted(required_columns.difference(data.columns))
     if missing_columns:
         raise ValueError(
             "The DNB data are missing required columns: "
@@ -99,13 +173,15 @@ def load_dnb_data(
 def prepare_horizon_data(
     data: pd.DataFrame,
     horizon: int = DEFAULT_HORIZON,
-    dependent_variable: str = DEPENDENT_VARIABLE,
-    predictors: Sequence[str] = PREDICTORS,
+    dependent_variable: str = DEFAULT_DEPENDENT_VARIABLE,
+    predictors: Sequence[str] = DEFAULT_PREDICTORS,
+    target_column: str | None = None,
 ) -> pd.DataFrame:
-    """Align future GDP growth with predictor values at the forecast origin.
+    """Align a future dependent-variable value with origin-date predictors.
 
-    The outcome at row ``t`` is the dependent variable ``horizon`` quarterly
-    rows later. Predictors remain dated at their observation/forecast origin.
+    The outcome at row ``t`` is the selected dependent variable ``horizon``
+    quarterly rows later. Predictors remain dated at their observation/
+    forecast origin.
 
     Parameters
     ----------
@@ -114,7 +190,7 @@ def prepare_horizon_data(
     horizon : int, default=4
         Number of quarters between predictor date and outcome date.
     dependent_variable : str, default="NF_YER"
-        Series to forecast.
+        Series to forecast, such as GDP growth or inflation.
     predictors : sequence of str, default=the thesis predictor set
         Predictor columns observed at the forecast origin.
 
@@ -122,7 +198,8 @@ def prepare_horizon_data(
     -------
     pandas.DataFrame
         Complete model rows indexed by forecast-origin date, with future
-        outcomes in ``future_NF_YER`` and their dates in ``target_date``.
+        outcomes in a ``future_<dependent_variable>`` column and their dates
+        in ``target_date``.
     """
     if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1:
         raise ValueError("horizon must be a positive integer number of quarters.")
@@ -135,13 +212,18 @@ def prepare_horizon_data(
     if data.index.has_duplicates or not data.index.is_monotonic_increasing:
         raise ValueError("Quarterly dates must be unique and increasing.")
 
+    outcome_column = (
+        target_column_for(dependent_variable)
+        if target_column is None
+        else target_column
+    )
     prepared = data.loc[:, list(dict.fromkeys(required))].copy()
-    prepared[TARGET_COLUMN] = data[dependent_variable].shift(-horizon)
+    prepared[outcome_column] = data[dependent_variable].shift(-horizon)
     prepared[TARGET_DATE_COLUMN] = pd.Series(
         data.index, index=data.index
     ).shift(-horizon)
     prepared = prepared.dropna(
-        subset=[*predictors, TARGET_COLUMN, TARGET_DATE_COLUMN]
+        subset=[*predictors, outcome_column, TARGET_DATE_COLUMN]
     )
     prepared[TARGET_DATE_COLUMN] = pd.to_datetime(
         prepared[TARGET_DATE_COLUMN]
@@ -150,7 +232,7 @@ def prepare_horizon_data(
 
 
 class DNBGrowthAtRisk:
-    """Fit the IMF-based DNB GaR model and predict from macroeconomic inputs.
+    """Fit an IMF-based DNB conditional-risk model.
 
     Parameters
     ----------
@@ -160,6 +242,8 @@ class DNBGrowthAtRisk:
         Input variables used by the quantile regressions.
     quantiles : sequence of float, default=(0.05, 0.10, ..., 0.95)
         Conditional quantiles fitted by the IMF quantile-regression code.
+    dependent_variable : str, default="NF_YER"
+        Outcome series to forecast, including GDP growth or inflation.
 
     Notes
     -----
@@ -172,14 +256,15 @@ class DNBGrowthAtRisk:
     def __init__(
         self,
         horizon: int = DEFAULT_HORIZON,
-        predictors: Sequence[str] = PREDICTORS,
+        predictors: Sequence[str] = DEFAULT_PREDICTORS,
         quantiles: Sequence[float] = QUANTILES,
+        dependent_variable: str = DEFAULT_DEPENDENT_VARIABLE,
     ) -> None:
         if not isinstance(horizon, int) or isinstance(horizon, bool) or horizon < 1:
             raise ValueError("horizon must be a positive integer number of quarters.")
         if len(set(predictors)) != len(predictors) or not predictors:
             raise ValueError("predictors must be a non-empty sequence of unique names.")
-        if not set((0.05, 0.25, 0.50, 0.75)).issubset(quantiles):
+        if not set(TSKEW_REQUIRED_QUANTILES).issubset(quantiles):
             raise ValueError(
                 "The IMF T-skew fit requires 5th, 25th, 50th, and 75th quantiles."
             )
@@ -189,6 +274,8 @@ class DNBGrowthAtRisk:
         self.horizon = horizon
         self.predictors = tuple(predictors)
         self.quantiles = tuple(sorted(set(float(q) for q in quantiles)))
+        self.dependent_variable = dependent_variable
+        self.target_column = target_column_for(dependent_variable)
         self.regression: QuantileReg | None = None
         self.training_data: pd.DataFrame | None = None
         self.as_of: pd.Timestamp | None = None
@@ -216,7 +303,7 @@ class DNBGrowthAtRisk:
         """
         required_columns = [
             *self.predictors,
-            TARGET_COLUMN,
+            self.target_column,
             TARGET_DATE_COLUMN,
         ]
         missing = [
@@ -235,9 +322,9 @@ class DNBGrowthAtRisk:
             raise ValueError(
                 "Not enough complete training rows are available at the cutoff."
             )
-        values = training.loc[:, [*self.predictors, TARGET_COLUMN]].to_numpy(
-            dtype=float
-        )
+        values = training.loc[
+            :, [*self.predictors, self.target_column]
+        ].to_numpy(dtype=float)
         if not np.isfinite(values).all():
             raise ValueError("Training data contain non-finite numeric values.")
         if any(training[column].nunique() < 2 for column in self.predictors):
@@ -247,12 +334,14 @@ class DNBGrowthAtRisk:
             warnings.filterwarnings("error", category=IterationLimitWarning)
             try:
                 regression = QuantileReg(
-                    TARGET_COLUMN,
+                    self.target_column,
                     indvars=list(self.predictors),
                     quantile_list=list(self.quantiles),
                     data=training,
                     scaling=False,
-                    alpha=0.1,
+                    alpha=QR_CONFIDENCE_ALPHA,
+                    max_iter=QR_MAX_ITER,
+                    parameter_tolerance=QR_PARAMETER_TOLERANCE,
                 )
             except IterationLimitWarning as error:
                 raise RuntimeError(
@@ -339,12 +428,35 @@ class DNBGrowthAtRisk:
                 "The fitted IMF T-skew distribution is not strictly increasing."
             )
 
-        return {
+        outcome_key = next(
+            (
+                key
+                for key, spec in OUTCOME_SPECS.items()
+                if spec["dependent_variable"] == self.dependent_variable
+            ),
+            None,
+        )
+        primary_quantile = (
+            float(OUTCOME_SPECS[outcome_key]["primary_quantile"])
+            if outcome_key is not None
+            else 0.05
+        )
+        prediction = {
             "quantile_regression": quantile_values,
             "distribution_parameters": parameters,
             "distribution_quantiles": distribution_quantiles,
-            "probability_growth_below_zero": float(tskew_cdf(0.0, **parameters)),
+            "probability_below_zero": float(tskew_cdf(0.0, **parameters)),
+            "primary_tail_quantile": primary_quantile,
+            "primary_quantile_regression": quantile_values[primary_quantile],
+            "primary_distribution_quantile": distribution_quantiles[
+                primary_quantile
+            ],
         }
+        if self.dependent_variable == DEPENDENT_VARIABLES["growth"]:
+            prediction["probability_growth_below_zero"] = prediction[
+                "probability_below_zero"
+            ]
+        return prediction
 
 
 def write_model_results(
@@ -392,16 +504,42 @@ def write_model_results(
             output_dir / "quantile_regression_diagnostics.csv", index=False
         )
 
+    outcome_key = next(
+        (
+            key
+            for key, spec in OUTCOME_SPECS.items()
+            if spec["dependent_variable"] == model.dependent_variable
+        ),
+        "growth",
+    )
+    outcome_spec = OUTCOME_SPECS[outcome_key]
+    primary_quantile = float(outcome_spec["primary_quantile"])
+    dependent_variable = model.dependent_variable
+    target_column = model.target_column
+    outcome_label = str(outcome_spec["label"])
+    risk_name = str(outcome_spec["risk_name"])
+    outcome_unit = str(outcome_spec["unit"])
+
     in_sample_rows = []
+    crossing_counts = {quantile: 0 for quantile in model.quantiles[:-1]}
+    rows_with_crossing = 0
     for origin_date, row in prepared_data.iterrows():
         prediction = model.predict(
             {name: float(row[name]) for name in model.predictors}
         )
+        qr_values = [
+            prediction["quantile_regression"][quantile]
+            for quantile in model.quantiles
+        ]
+        crossed = np.diff(qr_values) <= 0
+        rows_with_crossing += int(crossed.any())
+        for index, has_crossing in enumerate(crossed):
+            crossing_counts[model.quantiles[index]] += int(has_crossing)
         output_row: dict[str, Any] = {
             "forecast_origin": origin_date,
             "target_date": row[TARGET_DATE_COLUMN],
             "horizon_quarters": model.horizon,
-            "realized_future_NF_YER": float(row[TARGET_COLUMN]),
+            f"realized_future_{dependent_variable}": float(row[target_column]),
             "fit_status": "full_sample_in_sample_fit",
         }
         for quantile, value in prediction["quantile_regression"].items():
@@ -414,13 +552,36 @@ def write_model_results(
                 for name, value in prediction["distribution_parameters"].items()
             }
         )
-        output_row["probability_growth_below_zero"] = prediction[
-            "probability_growth_below_zero"
+        output_row["probability_below_zero"] = prediction[
+            "probability_below_zero"
         ]
+        if dependent_variable == DEPENDENT_VARIABLES["growth"]:
+            output_row["probability_growth_below_zero"] = prediction[
+                "probability_below_zero"
+            ]
         in_sample_rows.append(output_row)
 
     in_sample = pd.DataFrame(in_sample_rows)
     in_sample.to_csv(output_dir / "in_sample_conditional_quantiles.csv", index=False)
+    crossing_diagnostics = pd.DataFrame(
+        [
+            {
+                "quantile_pair": (
+                    f"q{int(quantile * 100):02d}_q"
+                    f"{int(next_quantile * 100):02d}"
+                ),
+                "crossed_rows": crossing_counts[quantile],
+                "rows_evaluated": len(in_sample),
+            }
+            for quantile, next_quantile in zip(
+                model.quantiles[:-1], model.quantiles[1:]
+            )
+        ]
+    )
+    crossing_diagnostics["rows_with_any_crossing"] = rows_with_crossing
+    crossing_diagnostics.to_csv(
+        output_dir / "quantile_crossing_diagnostics.csv", index=False
+    )
 
     latest_origin = raw_data.index[-1]
     latest_predictors = raw_data.loc[latest_origin, list(model.predictors)]
@@ -433,12 +594,30 @@ def write_model_results(
         "target_date": target_date,
         "horizon_quarters": model.horizon,
         "information_cutoff": model.as_of,
-        "qr_q05": latest_prediction["quantile_regression"][0.05],
-        "tskew_q05_GaR": latest_prediction["distribution_quantiles"][0.05],
-        "probability_growth_below_zero": latest_prediction[
-            "probability_growth_below_zero"
+        "primary_risk_name": risk_name,
+        "primary_tail_quantile": primary_quantile,
+        "primary_qr_tail": latest_prediction["primary_quantile_regression"],
+        "primary_tskew_tail": latest_prediction[
+            "primary_distribution_quantile"
         ],
+        "probability_below_zero": latest_prediction["probability_below_zero"],
     }
+    if dependent_variable == DEPENDENT_VARIABLES["growth"]:
+        latest_row.update(
+            {
+                "qr_q05": latest_prediction["quantile_regression"][0.05],
+                "tskew_q05_GaR": latest_prediction[
+                    "distribution_quantiles"
+                ][0.05],
+                "probability_growth_below_zero": latest_prediction[
+                    "probability_below_zero"
+                ],
+            }
+        )
+    elif dependent_variable == DEPENDENT_VARIABLES["inflation"]:
+        latest_row["tskew_q95_Inflation_at_Risk"] = latest_prediction[
+            "distribution_quantiles"
+        ][0.95]
     for quantile, value in latest_prediction["quantile_regression"].items():
         latest_row[f"qr_q{int(quantile * 100):02d}"] = value
     for quantile, value in latest_prediction["distribution_quantiles"].items():
@@ -448,35 +627,76 @@ def write_model_results(
     pd.DataFrame([latest_row]).to_csv(
         output_dir / "latest_forecast.csv", index=False
     )
+    training = model.training_data
+    if training is None:
+        raise RuntimeError("The fitted model has no retained training data.")
+    target_dates = pd.to_datetime(training[TARGET_DATE_COLUMN])
+    model_summary = {
+        "dependent_variable": dependent_variable,
+        "outcome": outcome_label,
+        "risk_name": risk_name,
+        "primary_tail_quantile": primary_quantile,
+        "predictors": list(model.predictors),
+        "forecast_horizon_quarters": model.horizon,
+        "estimation_observations": len(training),
+        "forecast_origin_start": training.index.min().strftime("%Y-%m-%d"),
+        "forecast_origin_end": training.index.max().strftime("%Y-%m-%d"),
+        "target_date_start": target_dates.min().strftime("%Y-%m-%d"),
+        "target_date_end": target_dates.max().strftime("%Y-%m-%d"),
+        "quantile_levels": list(model.quantiles),
+        "direct_qr_rows_with_any_crossing": rows_with_crossing,
+        "direct_qr_rows_evaluated": len(in_sample),
+        "inflation_transformation_note": (
+            "NF_HIC is used as supplied. Values appear consistent with an "
+            "inflation rate rather than a positive index level, but the "
+            "available workbook does not document its exact transformation."
+            if dependent_variable == DEPENDENT_VARIABLES["inflation"]
+            else None
+        ),
+    }
+    with (output_dir / "model_summary.json").open(
+        "w", encoding="utf-8"
+    ) as file:
+        json.dump(model_summary, file, indent=2)
 
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
+    primary_suffix = f"q{int(primary_quantile * 100):02d}"
     fig, axis = plt.subplots(figsize=(11, 6))
     axis.plot(
         in_sample["forecast_origin"],
-        in_sample["tskew_q05"],
+        in_sample[f"tskew_{primary_suffix}"],
         color="firebrick",
-        label="T-skew fitted 5th percentile (GaR)",
+        label=f"Fitted T-skew {primary_suffix} ({risk_name})",
     )
     axis.plot(
         in_sample["forecast_origin"],
-        in_sample["realized_future_NF_YER"],
+        in_sample[f"realized_future_{dependent_variable}"],
         color="black",
         alpha=0.55,
-        label=f"Realized NF_YER at origin + {model.horizon} quarters",
+        label=(
+            f"Realized {dependent_variable} at origin + "
+            f"{model.horizon} quarters"
+        ),
     )
     axis.set_title(
-        f"In-sample fitted Growth-at-Risk, {model.horizon} quarters ahead"
+        f"In-sample fitted {risk_name}: {outcome_label}, "
+        f"{model.horizon} quarters ahead"
     )
     axis.set_xlabel("Forecast origin (quarter-end)")
-    axis.set_ylabel("Year-on-year real GDP growth (%)")
+    axis.set_ylabel(outcome_unit)
     axis.grid(alpha=0.25)
     axis.legend()
     fig.tight_layout()
-    history_path = output_dir / "historical_growth_at_risk.png"
+    history_filename = (
+        "historical_growth_at_risk.png"
+        if outcome_key == "growth"
+        else "historical_inflation_at_risk.png"
+    )
+    history_path = output_dir / history_filename
     fig.savefig(history_path, dpi=160)
     plt.close(fig)
 
@@ -489,26 +709,35 @@ def write_model_results(
     density = [tskew_pdf(float(value), **parameters) for value in x_values]
     fig, axis = plt.subplots(figsize=(9, 5))
     axis.plot(x_values, density, color="navy")
+    tail_value = latest_prediction["distribution_quantiles"][primary_quantile]
+    if primary_quantile < 0.5:
+        tail_mask = x_values <= tail_value
+        tail_label = f"Lower {primary_quantile:.0%} tail"
+        tail_color = "firebrick"
+    else:
+        tail_mask = x_values >= tail_value
+        tail_label = f"Upper {(1 - primary_quantile):.0%} tail"
+        tail_color = "darkorange"
     axis.fill_between(
         x_values,
         0,
         density,
-        where=x_values <= latest_prediction["distribution_quantiles"][0.05],
-        color="firebrick",
+        where=tail_mask,
+        color=tail_color,
         alpha=0.35,
-        label="Lower 5% tail",
+        label=tail_label,
     )
     axis.axvline(
-        latest_prediction["distribution_quantiles"][0.05],
-        color="firebrick",
+        tail_value,
+        color=tail_color,
         linestyle="--",
-        label="T-skew GaR (5th percentile)",
+        label=f"{risk_name} ({primary_suffix})",
     )
     axis.set_title(
-        f"Latest conditional T-skew distribution: "
+        f"Latest conditional T-skew: {outcome_label}, "
         f"{latest_origin:%Y-%m-%d} origin, {model.horizon}-quarter horizon"
     )
-    axis.set_xlabel("Year-on-year real GDP growth (%)")
+    axis.set_xlabel(outcome_unit)
     axis.set_ylabel("Probability density")
     axis.grid(alpha=0.25)
     axis.legend()
@@ -520,6 +749,8 @@ def write_model_results(
     return {
         "coefficients": output_dir / "quantile_regression_coefficients.csv",
         "diagnostics": output_dir / "quantile_regression_diagnostics.csv",
+        "crossing_diagnostics": output_dir / "quantile_crossing_diagnostics.csv",
+        "model_summary": output_dir / "model_summary.json",
         "in_sample": output_dir / "in_sample_conditional_quantiles.csv",
         "latest_forecast": output_dir / "latest_forecast.csv",
         "historical_figure": history_path,

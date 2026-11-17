@@ -1,0 +1,72 @@
+{
+  "created_utc": "2026-11-17T10:28:45.782749+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "model_name": "model_3_household_housing",
+  "model_label": "Household demand and housing market conditions",
+  "predictors": [
+    "NF_YER",
+    "DR_PYR",
+    "DF_LTN_HHHN",
+    "DF_IHX"
+  ],
+  "narrative": "Weaker disposable income, higher mortgage financing costs and cooling housing markets can affect demand, output, and inflation.",
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "input_range_percentiles": [
+    0.05,
+    0.95
+  ],
+  "input_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DR_PYR",
+      "lower_p05": -1.0464030091315522,
+      "upper_p95": 4.653835579712236,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_LTN_HHHN",
+      "lower_p05": -1.660260000000001,
+      "upper_p95": 1.7019099999999998,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_IHX",
+      "lower_p05": -2.5318856906901854,
+      "upper_p95": 7.340493825262546,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "reference_output": {
+    "NF_YER": 0.5842116591916522,
+    "DR_PYR": 1.0002395498390086,
+    "DF_LTN_HHHN": 0.18640994747664807,
+    "DF_IHX": 4.688457609805894,
+    "forecast_origin": "2026-03-31",
+    "target_date": "2027-03-31",
+    "horizon_quarters": 4,
+    "training_observations": 105,
+    "qr_q05": -3.675996384305831,
+    "tskew_q05_GaR": -3.548880991855847,
+    "tskew_q50": 1.8746246361280348,
+    "probability_growth_below_zero": 0.1951062997020616
+  },
+  "failed_scenarios": 0,
+  "model_fit_calls": 1,
+  "training_observations": 105,
+  "information_cutoff": "2026-03-31",
+  "forecast_horizon_quarters": 4,
+  "independent_input_sampling": true,
+  "assumptions": [
+    "Empirical marginal input percentiles are provisional bounds, not validated economic uncertainty ranges.",
+    "Inputs are sampled independently; combinations can violate historical economic dependencies and are not probabilities of future states.",
+    "The fitted quantile-regression coefficients are fixed across scenarios; only the conditional T-skew distribution is refit from scenario-specific conditional quantiles."
+  ]
+}

@@ -1,0 +1,2 @@
+NF_YER,DN_CXD,DR_FOD,forecast_origin,target_date,horizon_quarters,training_observations,qr_q05,tskew_q05_GaR,tskew_q50,probability_growth_below_zero
+0.5842116591916522,-2.9959706500912944,1.969484097374945,2026-03-31,2027-03-31,4,217,-2.322695633072913,-1.936671448246741,2.119324339424852,0.12474931126566953

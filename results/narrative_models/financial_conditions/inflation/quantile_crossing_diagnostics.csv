@@ -1,0 +1,7 @@
+quantile_pair,crossed_rows,rows_evaluated,rows_with_any_crossing
+q05_q10,10,85,20
+q10_q25,9,85,20
+q25_q50,1,85,20
+q50_q75,3,85,20
+q75_q90,1,85,20
+q90_q95,5,85,20

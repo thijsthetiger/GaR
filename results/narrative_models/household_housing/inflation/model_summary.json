@@ -1,0 +1,30 @@
+{
+  "dependent_variable": "NF_HIC",
+  "outcome": "HICP inflation",
+  "risk_name": "Inflation-at-Risk",
+  "primary_tail_quantile": 0.95,
+  "predictors": [
+    "NF_YER",
+    "DR_PYR",
+    "DF_LTN_HHHN",
+    "DF_IHX"
+  ],
+  "forecast_horizon_quarters": 4,
+  "estimation_observations": 105,
+  "forecast_origin_start": "1999-03-31",
+  "forecast_origin_end": "2025-03-31",
+  "target_date_start": "2000-03-31",
+  "target_date_end": "2026-03-31",
+  "quantile_levels": [
+    0.05,
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9,
+    0.95
+  ],
+  "direct_qr_rows_with_any_crossing": 29,
+  "direct_qr_rows_evaluated": 105,
+  "inflation_transformation_note": "NF_HIC is used as supplied. Values appear consistent with an inflation rate rather than a positive index level, but the available workbook does not document its exact transformation."
+}

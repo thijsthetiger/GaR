@@ -1,0 +1,111 @@
+{
+  "created_utc": "2026-11-17T10:56:06.560583+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "narrative_id": "model_1_financial_conditions",
+  "model_name": "model_1_financial_conditions",
+  "model_label": "Tightening financial and credit conditions",
+  "outcome": "growth",
+  "dependent_variable": "NF_YER",
+  "primary_risk_indicator": "Growth-at-Risk fitted conditional 5% percentile",
+  "predictors": [
+    "NF_YER",
+    "DF_LTN_NFCN",
+    "DF_STN_NFCN",
+    "DF_STO"
+  ],
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "input_range_percentiles": [
+    0.05,
+    0.95
+  ],
+  "input_bound_sample": "Each predictor's full available history in the raw BQR data; the same bounds are used for both outcomes regardless of their different aligned estimation samples.",
+  "input_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_LTN_NFCN",
+      "lower_p05": -1.6683500000000002,
+      "upper_p95": 1.8712340000000012,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_STN_NFCN",
+      "lower_p05": -2.5524963080000003,
+      "upper_p95": 2.980053205000001,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_STO",
+      "lower_p05": -20.312118207962,
+      "upper_p95": 25.5505597812823,
+      "bound_sample": "full available predictor history",
+      "observations": 89,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "reference_output": {
+    "NF_YER": 0.5842116591916522,
+    "DF_LTN_NFCN": -0.011759417200140287,
+    "DF_STN_NFCN": -0.629263215520194,
+    "DF_STO": 14.7209580769551,
+    "narrative_id": "model_1_financial_conditions",
+    "outcome": "growth",
+    "dependent_variable": "NF_YER",
+    "forecast_origin": "2026-03-31",
+    "target_date": "2027-03-31",
+    "horizon_quarters": 4,
+    "training_observations": 85,
+    "primary_tail_quantile": 0.05,
+    "primary_tail_risk": 0.5779256075823478,
+    "qr_q05": 1.0131980353364736,
+    "qr_q10": 1.4182447299838326,
+    "qr_q25": 1.3236125462232446,
+    "qr_q50": 1.8697797449735107,
+    "qr_q75": 3.509686716159052,
+    "qr_q90": 3.8944906375406556,
+    "qr_q95": 5.880681451584817,
+    "tskew_q05": 0.5779256075823478,
+    "tskew_q10": 1.1042559037522457,
+    "tskew_q25": 1.7047800974641751,
+    "tskew_q50": 2.3508642906250743,
+    "tskew_q75": 3.256936235453817,
+    "tskew_q90": 4.615506936181148,
+    "tskew_q95": 5.987558436431283,
+    "tskew_loc": 1.9176,
+    "tskew_scale": 0.8335,
+    "tskew_skew": 1.4172,
+    "tskew_df": 2
+  },
+  "successful_scenarios": 100,
+  "failed_scenarios": 0,
+  "scenarios_with_direct_quantile_crossing": 83,
+  "model_fit_calls": 1,
+  "coefficients_fixed_across_scenarios": true,
+  "training_observations": 85,
+  "training_target_start": "2005-03-31",
+  "training_target_end": "2026-03-31",
+  "information_cutoff": "2026-03-31",
+  "forecast_horizon_quarters": 4,
+  "independent_input_sampling": true,
+  "scenario_frequency_interpretation": "Exploratory design coverage, not a probability of future events.",
+  "assumptions": [
+    "Empirical marginal input percentiles are provisional bounds, not validated economic uncertainty ranges.",
+    "Inputs are sampled independently; combinations can violate historical economic dependencies.",
+    "Regression coefficients are fitted once per outcome and remain fixed across scenarios; only conditional quantiles and the T-skew distribution are recomputed for scenario inputs.",
+    "Within a narrative, both outcomes use one shared LHS design and the same predictor-history bounds.",
+    "Combined growth and inflation results are separate conditional marginal distributions, not a joint probability distribution."
+  ]
+}

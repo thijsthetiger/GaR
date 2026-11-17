@@ -1,0 +1,101 @@
+{
+  "created_utc": "2026-11-17T10:56:28.451877+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "narrative_id": "model_2_external_demand",
+  "model_name": "model_2_external_demand",
+  "model_label": "External demand and competitiveness",
+  "outcome": "inflation",
+  "dependent_variable": "NF_HIC",
+  "primary_risk_indicator": "Inflation-at-Risk fitted conditional 95% percentile",
+  "predictors": [
+    "NF_YER",
+    "DN_CXD",
+    "DR_FOD"
+  ],
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "input_range_percentiles": [
+    0.05,
+    0.95
+  ],
+  "input_bound_sample": "Each predictor's full available history in the raw BQR data; the same bounds are used for both outcomes regardless of their different aligned estimation samples.",
+  "input_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DN_CXD",
+      "lower_p05": -6.558240129213516,
+      "upper_p95": 15.413383927040499,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DR_FOD",
+      "lower_p05": -2.0353599355243546,
+      "upper_p95": 11.197265865858583,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "reference_output": {
+    "NF_YER": 0.5842116591916522,
+    "DN_CXD": -2.9959706500912944,
+    "DR_FOD": 1.969484097374945,
+    "narrative_id": "model_2_external_demand",
+    "outcome": "inflation",
+    "dependent_variable": "NF_HIC",
+    "forecast_origin": "2026-03-31",
+    "target_date": "2027-03-31",
+    "horizon_quarters": 4,
+    "training_observations": 217,
+    "primary_tail_quantile": 0.95,
+    "primary_tail_risk": 6.566501453741017,
+    "qr_q05": -0.4951310645971951,
+    "qr_q10": 0.3499823623494169,
+    "qr_q25": 0.8729308179165194,
+    "qr_q50": 1.524959034059789,
+    "qr_q75": 3.229597707996409,
+    "qr_q90": 5.331516306876433,
+    "qr_q95": 6.195832494604383,
+    "tskew_q05": -0.48215186509584473,
+    "tskew_q10": 0.21944954938046068,
+    "tskew_q25": 1.0160605593041725,
+    "tskew_q50": 1.8602426004715995,
+    "tskew_q75": 3.035665048351415,
+    "tskew_q90": 4.793200866547673,
+    "tskew_q95": 6.566501453741017,
+    "tskew_loc": 1.3122,
+    "tskew_scale": 1.0931,
+    "tskew_skew": 1.4011,
+    "tskew_df": 2
+  },
+  "successful_scenarios": 100,
+  "failed_scenarios": 0,
+  "scenarios_with_direct_quantile_crossing": 25,
+  "model_fit_calls": 1,
+  "coefficients_fixed_across_scenarios": true,
+  "training_observations": 217,
+  "training_target_start": "1972-03-31",
+  "training_target_end": "2026-03-31",
+  "information_cutoff": "2026-03-31",
+  "forecast_horizon_quarters": 4,
+  "independent_input_sampling": true,
+  "scenario_frequency_interpretation": "Exploratory design coverage, not a probability of future events.",
+  "assumptions": [
+    "Empirical marginal input percentiles are provisional bounds, not validated economic uncertainty ranges.",
+    "Inputs are sampled independently; combinations can violate historical economic dependencies.",
+    "Regression coefficients are fitted once per outcome and remain fixed across scenarios; only conditional quantiles and the T-skew distribution are recomputed for scenario inputs.",
+    "Within a narrative, both outcomes use one shared LHS design and the same predictor-history bounds.",
+    "Combined growth and inflation results are separate conditional marginal distributions, not a joint probability distribution."
+  ]
+}

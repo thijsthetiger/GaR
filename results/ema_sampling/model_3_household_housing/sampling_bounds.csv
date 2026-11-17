@@ -1,0 +1,5 @@
+variable,lower_p05,upper_p95,unit_note
+NF_YER,-1.3409588839690656,4.956760152944284,Prepared BQR column units; exact transformations/units are not fully documented.
+DR_PYR,-1.0464030091315522,4.653835579712236,Prepared BQR column units; exact transformations/units are not fully documented.
+DF_LTN_HHHN,-1.660260000000001,1.7019099999999998,Prepared BQR column units; exact transformations/units are not fully documented.
+DF_IHX,-2.5318856906901854,7.340493825262546,Prepared BQR column units; exact transformations/units are not fully documented.

@@ -1,0 +1,111 @@
+{
+  "created_utc": "2026-11-17T10:56:53.818771+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "narrative_id": "model_3_household_housing",
+  "model_name": "model_3_household_housing",
+  "model_label": "Household demand and housing market conditions",
+  "outcome": "inflation",
+  "dependent_variable": "NF_HIC",
+  "primary_risk_indicator": "Inflation-at-Risk fitted conditional 95% percentile",
+  "predictors": [
+    "NF_YER",
+    "DR_PYR",
+    "DF_LTN_HHHN",
+    "DF_IHX"
+  ],
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "input_range_percentiles": [
+    0.05,
+    0.95
+  ],
+  "input_bound_sample": "Each predictor's full available history in the raw BQR data; the same bounds are used for both outcomes regardless of their different aligned estimation samples.",
+  "input_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DR_PYR",
+      "lower_p05": -1.0464030091315522,
+      "upper_p95": 4.653835579712236,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_LTN_HHHN",
+      "lower_p05": -1.660260000000001,
+      "upper_p95": 1.7019099999999998,
+      "bound_sample": "full available predictor history",
+      "observations": 221,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_IHX",
+      "lower_p05": -2.5318856906901854,
+      "upper_p95": 7.340493825262546,
+      "bound_sample": "full available predictor history",
+      "observations": 109,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "reference_output": {
+    "NF_YER": 0.5842116591916522,
+    "DR_PYR": 1.0002395498390086,
+    "DF_LTN_HHHN": 0.18640994747664807,
+    "DF_IHX": 4.688457609805894,
+    "narrative_id": "model_3_household_housing",
+    "outcome": "inflation",
+    "dependent_variable": "NF_HIC",
+    "forecast_origin": "2026-03-31",
+    "target_date": "2027-03-31",
+    "horizon_quarters": 4,
+    "training_observations": 105,
+    "primary_tail_quantile": 0.95,
+    "primary_tail_risk": 5.63922890661605,
+    "qr_q05": 0.5732927887974568,
+    "qr_q10": 1.2615812722286273,
+    "qr_q25": 1.7350367897158976,
+    "qr_q50": 2.1818763912644252,
+    "qr_q75": 2.767159668318573,
+    "qr_q90": 4.463053542896986,
+    "qr_q95": 5.648009759643414,
+    "tskew_q05": 0.6842284684206226,
+    "tskew_q10": 1.1124376776314517,
+    "tskew_q25": 1.614619145898,
+    "tskew_q50": 2.1994999123088683,
+    "tskew_q75": 3.046679745618108,
+    "tskew_q90": 4.333659483226503,
+    "tskew_q95": 5.63922890661605,
+    "tskew_loc": 1.7458,
+    "tskew_scale": 0.7367,
+    "tskew_skew": 1.5022,
+    "tskew_df": 2
+  },
+  "successful_scenarios": 100,
+  "failed_scenarios": 0,
+  "scenarios_with_direct_quantile_crossing": 68,
+  "model_fit_calls": 1,
+  "coefficients_fixed_across_scenarios": true,
+  "training_observations": 105,
+  "training_target_start": "2000-03-31",
+  "training_target_end": "2026-03-31",
+  "information_cutoff": "2026-03-31",
+  "forecast_horizon_quarters": 4,
+  "independent_input_sampling": true,
+  "scenario_frequency_interpretation": "Exploratory design coverage, not a probability of future events.",
+  "assumptions": [
+    "Empirical marginal input percentiles are provisional bounds, not validated economic uncertainty ranges.",
+    "Inputs are sampled independently; combinations can violate historical economic dependencies.",
+    "Regression coefficients are fitted once per outcome and remain fixed across scenarios; only conditional quantiles and the T-skew distribution are recomputed for scenario inputs.",
+    "Within a narrative, both outcomes use one shared LHS design and the same predictor-history bounds.",
+    "Combined growth and inflation results are separate conditional marginal distributions, not a joint probability distribution."
+  ]
+}

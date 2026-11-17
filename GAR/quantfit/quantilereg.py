@@ -29,6 +29,8 @@ class QuantileReg(object):
     - data = data to train the model on
     - scaling: zscore of the variables: standardized coefficients
     - alpha: the level of confidence to compute the confidence intervals
+    - max_iter: maximum iterations for each quantile fit
+    - parameter_tolerance: convergence tolerance for each quantile fit
     
     Output:
     - qfit_dict = regressions fit, per quantiles (statsmodels object)
@@ -46,12 +48,14 @@ class QuantileReg(object):
 
     ## Initializer
     def __init__(self, depvar, indvars, quantile_list, data, scaling=True,
-                 alpha=0.1):
+                 alpha=0.1, max_iter=2000, parameter_tolerance=1e-05):
 
         ## Parameters
         self.scaling = scaling
         self.alpha = alpha
         self.quantile_list = quantile_list
+        self.max_iter = max_iter
+        self.parameter_tolerance = parameter_tolerance
         
         ## Variables
         self.depvar = depvar
@@ -98,11 +102,11 @@ class QuantileReg(object):
         qfit_dict = dict()
         for tau in self.quantile_list:
             reg_f = self.reg_formula
-            qfit = smf.quantreg(formula=reg_f, data=self.data).fit(q=tau,
-                                                                   maxiter=2000,
-                                                                   p_tol=1e-05)
-
-
+            qfit = smf.quantreg(formula=reg_f, data=self.data).fit(
+                q=tau,
+                maxiter=self.max_iter,
+                p_tol=self.parameter_tolerance,
+            )
             qfit_dict[tau] = qfit
         return(qfit_dict)
 
@@ -175,8 +179,6 @@ class QuantileReg(object):
 
 
     
-
-
 
 
 

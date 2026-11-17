@@ -1,0 +1,7 @@
+quantile_pair,scenarios_with_crossing,successful_scenarios
+q05_q10,12,100
+q10_q25,18,100
+q25_q50,6,100
+q50_q75,1,100
+q75_q90,5,100
+q90_q95,39,100

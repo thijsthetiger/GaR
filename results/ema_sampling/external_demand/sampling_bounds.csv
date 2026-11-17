@@ -1,0 +1,4 @@
+variable,lower_p05,upper_p95,observations,unit_note
+NF_YER,-1.3409588839690656,4.956760152944284,221,Prepared BQR column units; exact transformations/units are not fully documented.
+DN_CXD,-6.558240129213516,15.413383927040499,221,Prepared BQR column units; exact transformations/units are not fully documented.
+DR_FOD,-2.0353599355243546,11.197265865858583,221,Prepared BQR column units; exact transformations/units are not fully documented.

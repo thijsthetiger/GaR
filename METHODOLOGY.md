@@ -1,180 +1,135 @@
-# Thesis methodology: IMF-based DNB Growth-at-Risk
+# Narrative Growth-at-Risk and Inflation-at-Risk methodology
 
-## Research purpose and boundary
+## Scope and implementation
 
-The first implementation estimates how DNB macroeconomic and financial inputs
-relate to the conditional distribution of Dutch real GDP growth four quarters
-ahead. It is the baseline model for a separate, initial Exploratory Modeling
-and Analysis (EMA) input-sampling proof of concept in
-`analysis/run_ema_sampling.py`. That script samples inputs while keeping the
-fitted quantile-regression coefficients fixed. PRIM, a joint input density,
-and Inflation-at-Risk are outside the current scope.
+The active thesis workflow estimates six separate single-equation models:
+three economic narratives for GDP growth and the same three for inflation.
+The previously used baseline Growth-at-Risk specification has been archived
+and is excluded from active estimation and EMA. No narrative is treated as a
+replacement for that baseline.
 
-## Source data and preparation
+The thesis-specific adapter in `GAR/dnb_gar.py` loads and aligns data, applies
+the information cutoff, calls the IMF quantile-regression and conditional
+T-skew functions, and writes model outputs. The estimation procedures are
+shared across all six models. IMF statistical functions are not redefined by
+the narrative workflow. Active specifications and numerical settings are
+centralized in `config.py`.
 
-`BQR data yoy.xlsx`, worksheet `data_yoy`, contains 221 quarterly observations
-from 1971Q1 through 2026Q1. Dates are unique, consecutive, and quarter-end
-dates. `NF_YER` is the dependent variable; it is treated as year-on-year real
-GDP growth as checked by the thesis owner. The official variable list is the
-`List_variables` worksheet (capitalization as stored) of
-`BMPE_vintages_QLY (1).xlsx`.
+## Data and specifications
 
-The listed official concepts are:
+The input is `BQR data yoy.xlsx`, worksheet `data_yoy`. The data loader
+validates quarter-end dates, ordering, duplicates, consecutive quarters,
+required columns, and numeric values. `NF_YER` is the GDP-growth outcome.
+`NF_HIC` is the HICP-related inflation outcome and is used without an
+additional transformation. Its observed values appear consistent with an
+inflation rate rather than a positive index level, but the available
+workbooks do not establish that it is specifically a year-on-year rate or
+document its exact transformation. This uncertainty is not resolved by
+silently transforming the series.
 
-- `YER`: GDP - Chain linked volume (`NF_YER`).
-- `URX`: Unemployment rate (% of labour force) (`NF_URX`).
-- `LTN_NFCN`: long term lending rate for NFC (`DF_LTN_NFCN`).
-- `PYR`: Gross Personal Disposable Income, Real (deflated by consumption
-  deflator) (`DR_PYR`).
+The three predictor sets are configured once in `config.py` and used
+unchanged with either dependent variable:
 
-The `NF_`, `DF_`, and other BQR column prefixes are retained exactly as stored.
-The available workbooks do not provide a complete variable-by-variable account
-of how `data_yoy` was transformed from the official underlying series or the
-units after each transformation. The model therefore uses the chosen predictor
-values as supplied, does not transform them again, and reports their
-coefficients per BQR-column unit. The missing transformation details are an
-explicit data limitation, not an assumption about the meaning of the observed
-values.
+| Narrative | Predictors |
+|---|---|
+| Financial and Credit Conditions | `NF_YER`, `DF_LTN_NFCN`, `DF_STN_NFCN`, `DF_STO` |
+| External Demand and Competitiveness | `NF_YER`, `DN_CXD`, `DR_FOD` |
+| Household Demand and Housing Market | `NF_YER`, `DR_PYR`, `DF_LTN_HHHN`, `DF_IHX` |
 
-<!-- The current specification uses `DR_PYR` instead of `DF_IHX`. This is a
-coverage-motivated substitution: `DR_PYR` is non-missing for all 221 workbook
-quarters, whereas `DF_IHX` first appears in 1999Q1 and its use left 105
-complete origin/target pairs. With `DR_PYR`, the four-quarter target
-requirement leaves 217 pairs. This does not establish that disposable-income
-growth is theoretically superior to house prices. -->
+`DR_WDR` is excluded from the external-demand specification, while `DR_FOD`
+is retained. `NF_YER` remains a predictor in inflation models as well as
+growth models. The configurations are six independent equations, not a
+joint growth-inflation distribution.
 
-## Predictor specification
+Some predictors have shorter histories, so the complete estimation samples
+differ between narratives. Output `model_summary.json` records the available
+observations and date ranges for each outcome-specific fit.
 
-The initial four-predictor specification is theory-led:
+## Outcome alignment and estimation
 
-1. `NF_YER`, current output growth, captures persistence in real activity.
-2. `NF_URX`, unemployment, captures labour-market slack.
-3. `DF_LTN_NFCN`, the BQR series based on the long-term lending rate for
-   non-financial corporations, proxies the cost of corporate finance.
-4. `DR_PYR`, the BQR series based on real gross personal disposable income,
-   represents household income conditions. The substitution was made to
-   extend historical coverage; no causal or theoretical claim is implied.
+For forecast origin quarter \(t\), the adapter aligns the chosen outcome at
+\(t+4\) with predictors observed at \(t\). The forecast horizon is four
+quarters, and target dates are stored separately from origin dates. At an
+information cutoff \(T\), a training row is retained only if its target date
+is no later than \(T\), preventing use of unavailable future outcomes.
 
-<!-- Adrian, Boyarchenko, and Giannone (2019) motivate the financial-conditions
-channel: tighter financial conditions are associated with weaker lower
-quantiles of future GDP growth. The current model also includes a real
-disposable-income series, but the variable substitution is motivated by
-coverage rather than a newly established causal channel. No expected
-coefficient sign is imposed in estimation.
+The IMF `GAR.quantfit.quantilereg.QuantileReg` implementation fits the
+configured conditional quantiles (0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95)
+and an OLS conditional mean. The adapter passes the configured maximum
+iterations, parameter tolerance, and confidence-interval alpha. Iteration
+limit warnings become explicit errors; non-finite coefficients and invalid
+training data are also rejected. Quantile crossings are diagnosed in the
+direct regression outputs and reported rather than silently corrected.
 
-The unemployment-growth link is consistent with the output-unemployment
-relationship summarized by Ball, Leigh, and Loungani (2013). For `NF_YER`,
-current GDP growth is included as a persistence/current-conditions predictor
-within the IMF conditional-growth framework; this is a parsimonious modeling
-choice rather than a causal claim. -->
+The fitted conditional quantiles are passed to the IMF
+`GAR.tsfit.tskewfit.tskew_fit` function. The resulting conditional
+distribution parameters and quantiles are validated for finite values,
+positive scale/skew, and strictly increasing distribution quantiles. The
+T-skew fitter does not expose its optimizer success flag, so these checks do
+not constitute a formal convergence diagnostic.
 
-## Outcome and forecast horizon
+## Tail-risk interpretation
 
-For an observation at quarter \(t\), the model target is
-\[
-    y_{t+4} = \texttt{NF\_YER}_{t+4},
-\]
-and the predictors are observed at \(t\). This is the year-on-year growth rate
-four quarters later, not a sum of the next four quarterly growth rates. The
-adapter constructs the target by shifting the outcome series backward four
-rows while retaining the predictor date as the forecast origin and storing
-the outcome date separately.
+For GDP growth, the primary indicator is the fitted conditional 5th
+percentile, interpreted as downside Growth-at-Risk. For inflation, the
+primary indicator is the fitted conditional 95th percentile, interpreted as
+upside Inflation-at-Risk. The direct quantile-regression estimate and
+parametric T-skew quantile are both saved; they can differ because the
+T-skew fit represents the entire quantile set. All seven direct and fitted
+quantiles and distribution parameters are retained for further analysis.
 
-Before fitting at information cutoff \(T\), the adapter retains only training
-rows with target dates at or before \(T\). Thus a latest-origin forecast at
-2026Q1 uses target observations only through 2026Q1; the 2027Q1 outcome is not
-available to estimation.
+Historical fitted conditional quantiles use a model estimated on the
+available sample and are in-sample, not real-time historical forecasts. The
+latest forecast uses latest origin-date inputs and estimates only with target
+outcomes available by the information cutoff.
 
-## Quantile regression
+## EMA and limitations
 
-The IMF `GAR.quantfit.quantilereg.QuantileReg` class estimates conditional
-quantile regressions at 5%, 10%, 25%, 50%, 75%, 90%, and 95%, along with an OLS
-conditional-mean regression. Regressions use the supplied predictor units
-(`scaling=False`) so coefficients can be reported in their BQR-column units.
-The IMF class uses Statsmodels' formula-based quantile regression, a maximum
-of 2,000 iterations, and parameter tolerance `1e-5`. The adapter turns an
-iteration-limit warning into an explicit model error and checks the resulting
-coefficients for finite values.
+`analysis/run_ema_sampling.py` runs preliminary EMA input-sampling
+experiments for all six narrative models. For each narrative, it creates one
+Latin Hypercube design and evaluates the growth and inflation equations at
+the same sampled predictor combinations. Scenario IDs are stable hashes of
+the narrative and exact sampled values; downstream tables are matched by
+`narrative_id` and `scenario_id`, not by row order or Workbench scenario
+numbers.
 
-The IMF package received compatibility-only changes: Python's removed `imp`
-module was replaced with `importlib`, Excel/Windows imports are optional for
-non-Excel use, deprecated DataFrame `_append` calls in the used quantile
-regression module were replaced with `pandas.concat`, the scaler is imported
-only when scaling is requested, and an unconditional T-skew diagnostic print
-was removed. The quantile-regression and T-skew estimation methods themselves
-were not changed.
+The shared empirical input ranges use the configured lower and upper
+percentiles of each predictor's full available history in the raw BQR data.
+This intentionally avoids using outcome-specific aligned estimation
+samples to set bounds, so both outcomes receive identical bounds even where
+their estimation histories differ. Ranges remain provisional, independent
+marginal percentiles; independent sampling does not preserve historical
+dependencies. Each equation is fitted once before sampling, and its
+regression coefficients remain fixed while the conditional quantiles and
+T-skew distribution are evaluated at each scenario.
 
-## Conditional distribution and Growth-at-Risk
+The primary Growth-at-Risk indicator is the fitted conditional 5th
+percentile; the primary Inflation-at-Risk indicator is the fitted
+conditional 95th percentile. All seven direct and fitted quantiles and the
+distribution parameters are written to each outcome's scenario table. A
+per-narrative `combined_scenarios.csv` joins the two outcome-specific
+conditional marginal results using the shared scenario identifiers. It is
+not a joint density or probability distribution: no dependence assumption,
+joint probability, or stagflation probability is estimated. Scenario
+frequencies describe coverage of the exploratory design, not probabilities
+of future events. Regression convergence information and scenario-level
+direct-quantile crossing counts are saved as diagnostics. Select
+`--outcome growth` or `--outcome inflation` to run a single outcome family;
+in that case, the combined table contains only the selected outcome, as
+recorded in its `outcomes_included` column.
 
-For a predictor scenario, the seven fitted conditional quantiles are passed to
-the IMF `GAR.tsfit.tskewfit.tskew_fit` function. This preserves the IMF
-T-skew parameterization and its scale/skew optimization. The resulting
-conditional distribution is evaluated with the IMF `tskew_ppf`, `tskew_cdf`,
-and `tskew_pdf` functions.
+The baseline model and baseline-dependent presentation workflow are
+preserved under `archive/` but are not part of active research. Comprehensive
+out-of-sample backtesting, PRIM, joint densities, copulas, and full
+robustness analysis are not implemented. Results are conditional
+associations and should not be interpreted causally. Prepared BQR column
+transformations and units, including the exact `NF_HIC` transformation, need
+further documentation.
 
-The primary distribution-based GaR estimate is the conditional 5th percentile
-of this fitted T-skew distribution. The direct 5th-percentile quantile
-regression is also output as a distinct, non-parametric tail estimate. These
-two estimates need not coincide because the T-skew is a parametric fit to the
-entire set of conditional quantiles.
+## IMF attribution
 
-## In-sample results versus forecast
-
-The historical figure and `in_sample_conditional_quantiles.csv` show fitted
-values from a model estimated on the available sample. They are explicitly
-labelled in-sample: at historical dates, their coefficients use observations
-that would not have been known in real time. `latest_forecast.csv` is separate
-and uses the latest input values at the information cutoff, with target date
-four quarters later.
-
-<!-- In the updated run, 217 paired observations are used, with origin dates from
-1971Q1 through 2025Q1. At the 2026Q1 origin, the target is 2027Q1; the direct
-quantile-regression 5th percentile is −2.433% and the fitted T-skew 5th
-percentile is −2.549%, with a fitted 14.3% chance of negative growth. These
-conditional associations are not causal estimates, and the predictor
-transformations require confirmation before economic interpretation.
-
-No claim of improved forecast performance is made. The repository did not
-contain a previous thesis expanding-window backtest implementation, and this
-initial baseline does not claim out-of-sample predictive superiority. -->
-
-## Limitations and next validation
-
-<!-- - The exact transformations and units of some prepared BQR input columns are
-  not documented in either supplied workbook. Confirm these with the data
-  owner before interpreting coefficient magnitudes or passing alternative
-  scenarios.
-- The change to `DR_PYR` increases the sample, but 5% tail estimates remain
-  statistically uncertain and the longer historical sample may span changing
-  economic regimes.
-- The IMF T-skew fitting function returns fitted parameters but does not expose
-  the underlying optimizer's success flag. The adapter verifies finite,
-  positive distribution parameters, ordered quantiles, and CDF/quantile
-  consistency; these checks do not replace a convergence-status diagnostic.
-- Linear quantile regressions do not impose coefficient signs or nonlinear
-  interactions. The T-skew fit adds a distributional shape assumption.
-- A later step should add a strictly expanding-window backtest with
-  origin-specific cutoffs, proper tail scoring, and parameter stability
-  diagnostics before making forecast-performance claims.
-- The EMA proof of concept uses empirical marginal 5th–95th percentile bounds
-  and independent sampling. These are provisional bounds; clarify BQR
-  transformations/units and consider whether dependencies should be retained
-  before interpreting scenario outcomes. Its scenario-output spread is not a
-  calibrated predictive probability distribution. -->
-
-<!-- ## References and attribution
-
-- Adrian, T., Boyarchenko, N., & Giannone, D. (2019). “Vulnerable Growth.”
-  *American Economic Review*, 109(4), 1263–1289.
-  https://doi.org/10.1257/aer.20161923
-- Ball, L., Leigh, D., & Loungani, P. (2013). “Okun's Law: Fit at Fifty?”
-  NBER Working Paper 18668. https://doi.org/10.3386/w18668
-- Iacoviello, M. (2005). “House Prices, Borrowing Constraints, and Monetary
-  Policy in the Business Cycle.” *American Economic Review*, 95(3), 739–764.
-  https://doi.org/10.1257/0002828054201477
-- Mian, A., Sufi, A., & Verner, E. (2015). “Household Debt and Business Cycles
-  Worldwide.” NBER Working Paper 21581. https://doi.org/10.3386/w21581
-- IMF, *Growth at Risk* Python implementation in `GAR/`, version 0.1.1,
-  dated in the repository README as 28 October 2019. The source is governed by
-  CC BY-NC-SA 4.0; see `GAR/GaR license.txt`. The IMF disclaimer in
-  `IMF disclaimer.txt` applies. Reuse does not imply IMF endorsement. -->
+The original IMF Growth-at-Risk package and documents remain available in
+`GAR/` and `Documentation/`; license and disclaimer files are retained at
+the repository root and in `GAR/`. The thesis-specific adapter, narrative
+specifications, runners, EMA integration, and documentation reuse the IMF
+implementation but do not imply IMF endorsement.

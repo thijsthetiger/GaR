@@ -1,0 +1,5 @@
+variable,lower_p05,upper_p95,bound_sample,observations,unit_note
+NF_YER,-1.3409588839690656,4.956760152944284,full available predictor history,221,Prepared BQR column units; exact transformations/units are not fully documented.
+DF_LTN_NFCN,-1.6683500000000002,1.8712340000000012,full available predictor history,221,Prepared BQR column units; exact transformations/units are not fully documented.
+DF_STN_NFCN,-2.5524963080000003,2.980053205000001,full available predictor history,221,Prepared BQR column units; exact transformations/units are not fully documented.
+DF_STO,-20.312118207962,25.5505597812823,full available predictor history,89,Prepared BQR column units; exact transformations/units are not fully documented.

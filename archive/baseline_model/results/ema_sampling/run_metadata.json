@@ -1,0 +1,58 @@
+{
+  "created_utc": "2026-11-16T12:12:33.757693+00:00",
+  "script": "analysis/run_ema_sampling.py",
+  "model_name": "baseline",
+  "model_label": "baseline",
+  "predictors": [
+    "NF_YER",
+    "NF_URX",
+    "DF_LTN_NFCN",
+    "DR_PYR"
+  ],
+  "narrative": "",
+  "sampling_method": "EMA Workbench LHSSampler (Latin Hypercube)",
+  "random_seed": 20261103,
+  "scenario_count_requested": 100,
+  "scenario_count_returned": 100,
+  "input_bounds": [
+    {
+      "variable": "NF_YER",
+      "lower_p05": -1.3409588839690656,
+      "upper_p95": 4.956760152944284,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "NF_URX",
+      "lower_p05": 1.9787452,
+      "upper_p95": 11.3,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DF_LTN_NFCN",
+      "lower_p05": -1.6683500000000002,
+      "upper_p95": 1.8712340000000012,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    },
+    {
+      "variable": "DR_PYR",
+      "lower_p05": -1.0464030091315522,
+      "upper_p95": 4.653835579712236,
+      "unit_note": "Prepared BQR column units; exact transformations/units are not fully documented."
+    }
+  ],
+  "reference_output": {
+    "NF_YER": 0.5842116591916522,
+    "NF_URX": 6.262740397025988,
+    "DF_LTN_NFCN": -0.011759417200140287,
+    "DR_PYR": 1.0002395498390086,
+    "forecast_origin": "2026-03-31",
+    "target_date": "2027-03-31",
+    "horizon_quarters": 4,
+    "training_observations": 217,
+    "qr_q05": -2.433072451868769,
+    "tskew_q05_GaR": -2.54934340786209,
+    "tskew_q50": 2.1525036450645008,
+    "probability_growth_below_zero": 0.1429463721667743
+  },
+  "failed_scenarios": 0
+}

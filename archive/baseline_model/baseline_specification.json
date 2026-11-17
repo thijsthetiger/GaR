@@ -1,0 +1,22 @@
+{
+  "status": "archived; not part of the active thesis workflow",
+  "model": "Baseline Growth-at-Risk",
+  "dependent_variable": "NF_YER",
+  "predictors": [
+    "NF_YER",
+    "NF_URX",
+    "DF_LTN_NFCN",
+    "DR_PYR"
+  ],
+  "forecast_horizon_quarters": 4,
+  "quantile_levels": [
+    0.05,
+    0.10,
+    0.25,
+    0.50,
+    0.75,
+    0.90,
+    0.95
+  ],
+  "primary_tail_quantile": 0.05
+}
